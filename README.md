@@ -12,7 +12,7 @@
   [Progetto_SdE_2023_2024.pdf](Progetto_SdE_2023_2024.pdf)
 
   Slides  
-   1.[Introduzione al sistema Unix](/SdE_slides/01 - Introduzione al sistema Unix - wNotes.pdf)    
+   1.[Introduzione al sistema Unix](SdE_slides/01 - Introduzione al sistema Unix - wNotes.pdf)    
    2.[La shell di Unix](SdE_slides/02 - La shell di Unix - wNotes.pdf)   
    3.[Richiami sul linguaggio C](SdE_slides/03 - Richiami sul linguaggio C - wNotes.pdf)   
    4.[Intro alla programmazione di sistema](SdE_slides/04 - Intro alla programmazione di sistema - wNotes.pdf)   
