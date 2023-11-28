@@ -24,5 +24,6 @@
    10.[IPC](SdE_slides/10%20-%20IPC%20-%20wNotes.pdf)  
 
 
-[ciao](SdE_slides/01)
-[Progetto_SdE_2023_2024.pdf](Progetto_SdE_2023_2024.pdf)
+
+
+
