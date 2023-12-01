@@ -6,6 +6,7 @@
 #include <fcntl.h>	//for flags like O_RDONLY and SEEK_END
 #include <stdlib.h>	//for exit() and EXIT_FAILURE
 #include <unistd.h>	//for unbuffered functions-> read(), write(), STDIN_FILENO
+#include <sys/socket.h> //for int socket(int domain, int type, int protocol);
 
 int main(int argc, char* argv){
   
