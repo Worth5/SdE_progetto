@@ -1,0 +1,38 @@
+/* Esercitazione 1-1
+ * 
+ * Utilizzo di base della shell di Unix
+ */
+
+1. Verificare di trovarsi nella directory ~. In caso negativo, spostarsi al suo interno e effettuare di nuovo la verifica.
+
+pwd
+cd ~
+
+2. Creare una directory chiamata "es1-1".
+
+3. Rimanendo nella ~, creare una sottodirectory di "es1-1" chiamata "dir1"
+
+4. Spostarsi all'interno della directory "dir1" con un solo comando.
+
+5. Creare tre file vuoti di nome "file1-1", "file1-2", "file1-3"
+
+6. Verificare che i tre file siano stati creati, visualizzando l'ora di modifica
+
+7. Creare una sottodirectory di "es1-1" chiamata "dir2"
+
+8. Copiare "file1-3" all'interno di "dir2". (Sfruttare la funzione di autocompletamento della shell. 
+   Fino a che punto vi aiuta? Perché?)
+
+9. Spostarsi all'interno di "dir2" usando il path assoluto
+
+10. Rinominare "file1-3" in "file2-1"
+
+11. Spostarsi nella cartella genitore "es1-1"
+
+12. Visualizzare il contenuto di "dir1" e "dir2". Posso usare un solo comando?
+
+13. Rimuovere "dir2" tramite il comando 'rmdir'. E' possibile? 
+
+14. Cercare sul manuale l'opzione del comando "rm" che permette di eliminare "dir2" e il suo contenuto, e utilizzarla
+
+15. Verificare l'avvenuta rimozione di "dir2"

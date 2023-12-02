@@ -1,0 +1,63 @@
+/*
+ * es5-2: utilizzo delle system call read(), write(), lseek()
+ *
+ */
+
+
+=========================== es_copy.c =============================
+
+Scrivere un programma che emula il comportamento del comando 'cp'.
+Usando le primitive per l'unbuffered I/O, il programma legge dallo 
+standard input e stampa i dati letti sullo standard output.
+
+Esempio di utilizzo: 
+    
+    ./es_copy < input > output
+
+=====================================================================
+
+
+
+
+
+=========================== es_reverse.c =============================
+
+Usando le primitive per l'unbuffered I/O, scrivere un programma che 
+legge una stringa da standard input e la scrive su standard output 
+in modo "specchiato", ovvero al contrario.
+Non usare strutture dati di appoggio, per esempio array, al fine di
+memorizzare temporaneamente il contenuto del file.
+
+Esempio di utilizzo: 
+    
+    echo "ambulanza" > test
+    ./es_reverse < test
+
+Output atteso:
+
+    aznalubma
+
+=====================================================================
+
+
+
+
+
+=========================== es_sortint.c =============================
+
+Scrivere un programma che legge un file contenente i primi 100 numeri 
+interi (da 1 a 100), li inserisce (in ordine crescente) in un vettore
+di interi e li stampa su standard output.
+Usare le primitive per l'unbuffered I/O in modo da leggere da std input
+e scrivere su std output.
+
+Suggerimento: per generare un file con 100 numeri in ordine casuale, 
+usare il seguente comando:
+ 
+    seq 100 | shuf > primi100numeri
+
+Esempio di utilizzo: 
+    
+    ./sortint < primi100numeri
+
+=====================================================================

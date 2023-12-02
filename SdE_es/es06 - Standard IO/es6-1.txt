@@ -1,0 +1,57 @@
+/*
+ * es6-1: Utilizzo della libreria standard per operazioni di I/O
+ *
+ */
+
+
+======================= es_wordcount.c ===========================
+
+Si vuole implementare un programma C che:
+- legge un file dallo standard input (tramite redirezione)
+- conta il numero di parole contenute nel file
+- mostra su standard output il risultato
+
+Si considera parola una qualunque sequenza di caratteri 
+compresa delimitata dai caratteri ' ' o '\n', che contenga
+almeno una lettera dell'alfabeto (minuscola o maiuscola).
+
+    
+Implementare 4 versioni del programma:
+1) lettura di un carattere per volta, usando fgetc()
+2) lettura di una linea per volta, usando fgets()
+3) lettura di una stringa formattata, usando fscanf()
+4) usando la system call read() 
+
+
+Confrontare l'efficienza delle 4 versioni utilizzando
+il comando 'time'.
+
+Tip: per ottenere risultati significativi, utilizzare un file 
+     molto grande. Per esempio, si puo' generare un file di 
+     testo da 200MB con il seguente comando:
+ 
+     yes "questa e' una frase di esempio" | head -c 200MB > bigfile
+    
+     Il comando crea un file che ripete la stringa
+     "questa e' una frase di esempio" fino a raggiungere i 200MB
+
+     
+     
+     
+======================= es_filter.c ===========================
+
+Scrivere un programma C che legge una sequenza di interi da 
+standard input e li scrive su standard output. 
+Il programma deve filtrare eventuali caratteri non compatibili
+con la sintassi dei numeri interi, e deve mostrare un messaggio
+di errore se la lettura termina con errore prima di raggiungere 
+la fine dello stream (EOF). 
+Utilizzare le funzioni per l'I/O *formattato*.
+
+Esempio: 
+
+Se il programma legge la sequenza
+    4 55 . 845 ciao -1 2 % , -1 182 
+
+l'output risultante deve essere
+    4 55 845 -1 2 -1 182

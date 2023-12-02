@@ -1,0 +1,32 @@
+/* Es. 3-1 
+ *
+ * Richiami di linguaggio C: I/O, cicli, array, funzioni
+ */
+
+Scrivere un programma che:
+
+=== 1 === 
+Legge 5 numeri interi positivi da tastiera e li inserisce all'interno di un array. Se l'utente inserisce un numeri negativo, questo deve essere scartato.  
+=========
+
+=== 2 === 
+Stampa a video i numeri contenuti nell'array in ordine inverso rispetto a come sono stati inseriti.
+=========
+
+=== 3 === 
+Invoca una funzione che prende come argomento l'array del punto 2 e restituisce il numero con valore massimo. Tale valore deve essere stampato a video dalla funzione main del programma.
+=========
+
+
+===== Esempio di esecuzione =====
+
+Inserisci 5 numeri interi positivi:
+1
+2
+34
+4
+5
+Valori inseriti nell'array: 5 4 34 2 1 
+Il massimo e': 34
+
+===================================

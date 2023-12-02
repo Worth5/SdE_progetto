@@ -1,0 +1,37 @@
+/* Esercitazione 2-2
+ * 
+ * Gestione degli utenti
+ */
+
+1. Visualizzare il contenuto del file "/etc/passwd".
+
+2. Visualizzare solo le righe del file "/etc/passwd" relative agli utenti che hanno una directory in /home.
+
+3. Creare un nuovo utente "bob". Fare il login con l'utente "bob" e spostarsi nella sua HOME
+
+4. Creare una directory "dirdibob" nella HOME. Creare un file vuoto "filedibob" dentro "dirdibob"
+
+5. Fare il login con l'utente "alice" e verificare se si e' in grado di leggere il contenuto di "dirdibob" e "filedibob". E' possibile? 
+
+6. Effettuare il logout da "alice" (con il comando exit), tornando cosi' all'utente "bob". Cambiare i permessi della directory "dirdibob" in modo che gli altri utenti (others) non possano leggere/scrivere/accedere la directory "dirdibob"
+
+7. Ripetere il passo 5. Come e' cambiata la situazione?
+
+8. Effettuare il logout da "alice" e da "bob" (con il comando exit, piu' volte se necessario), tornando cosi' all'utente "studente".
+
+9. Creare un nuovo gruppo "mobileapp" e aggiungere "bob" al gruppo
+
+10. Fare il login con l'utente "bob", spostarsi nella sua HOME e cambiare il gruppo proprietario di "dirdibob" in "mobileapp" 
+
+11. Aggiungere "alice" al gruppo "mobileapp". E' possibile farlo essendo loggati come "bob"?
+In caso negativo, rendere "bob" amministratore del gruppo e ripetere l'operazione.
+
+12. Ripetere il passo 5. Come e' cambiata la situazione?
+
+13. Effettuare il logout da "alice" e da "bob" (con il comando exit, piu' volte se necessario), tornando cosi' all'utente "studente".
+
+14. Rimuovere il gruppo "mobileapp". Quale e' il nuovo gruppo proprietario della directory "/home/bob/dirdibob"?
+
+15. Rimuovere utente "alice". La sua home viene rimossa? In caso negativo, rimuoverla manualmente.
+
+16. Rimuovere utente "bob", utilizzando l'opzione del comando 'deluser' per rimuovere anche la sua home (vedere il man del comando 'deluser')

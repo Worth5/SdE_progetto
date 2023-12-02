@@ -1,0 +1,34 @@
+/*
+ * es9-1: uso dei socket
+ *
+ */
+
+Modificare il programma contenuto nella directory v3
+
+====== SERVER ======
+
+Scrivere un programma server che:
+
+1) crea un socket di tipo connection-oriented
+2) attende la connessione da parte di un client 
+3) quando un client si connette, crea un processo figlio che gestisce
+   la connessione col client.
+   3a) il processo figlio, ciclicamente, riceve un messaggio dal client 
+       e invia una risposta. Quando viene ricevuta la stringa 'exit', 
+       termina
+   3b) il processo genitore si mette subito in attesa della richiesta
+       di un nuovo client tornando al punto 2
+
+
+====== CLIENT ======
+
+Scrivere un programma client che:
+
+1) apre un socket di tipo connection-oriented
+2) ciclicamente: 
+   2a) legge una linea da stdin
+   2b) invia la lunghezza della linea al server
+   2c) invia la linea al server
+   2d) attende la risposta dal server
+   2e) se l'utente ha inserito 'exit', termina. Altrimenti, torna al punto 2a
+ 

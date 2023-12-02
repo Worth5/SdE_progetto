@@ -1,0 +1,25 @@
+/* Esercitazione 1-2
+ * 
+ * Modifica di file e redirezione
+ */
+
+1. Creare una nuova directory "/home/studente/es1-2/"
+
+2. Usando l'editor 'gedit', creare tre file "file2-1", "file2-2", "file2-3" e scrivere:
+    - "Primo file" all'interno del "file2-1";
+    - "Secondo file" all'interno del "file2-2";
+    - "Terzo file" all'interno del "file2-3". 
+   Salvare senza chiudere i file. Potete scrivere sulla shell?
+
+3. Dopo aver chiuso il programma 'gedit', visualizzare il contenuto di "file2-1" utilizzando il comando 'less'. 
+
+4. Senza usare un editor di testo, sovrascrivere il contenuto di "file2-1", "file2-2" e "file2-3" rispettivamente con i numeri 1, 2 e 3.
+
+5. Con un solo comando, concatenare il contenuto di "file2-1", "file2-2" e "file2-3" e scriverlo su un nuovo file di nome 'numeri' 
+
+6. Senza usare un editor di testo, aggiungere il numero 4 in coda al file 'numeri'
+
+7. Visualizzare solo l'ultima riga del file numeri
+ 
+8. Usando un solo comando, visualizzare solamente la seconda riga del file numeri 
+

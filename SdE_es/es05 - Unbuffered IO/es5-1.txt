@@ -1,0 +1,155 @@
+/*
+ * es5-1: apertura e chiusura di file tramite system call open() e close()
+ *
+ */
+
+
+=========================== es_create.c =============================
+
+Scrivere un programma che controlla se un file di nome "test" esiste
+nella directory corrente, e: 
+
+- se il file di nome "test" non esiste, il programma chiede all'utente 
+di confermare o meno la creazione di un file con tale nome;
+- se il file di nome "test" esiste, il programma chiede all'utente di
+confermare o meno l'eliminazione del contenuto del programma, ovvero 
+rende il file vuoto.
+
+Dopo l'esecuzione del programma, verificare che l'operazione richiesta
+sia stata effettuata correttamente usando il comando "ls -l".
+
+
+--- Output di esempio 1 --- 
+
+    $ ./es_create
+    File test non esiste, vuoi crearlo? [y/N]
+    y  
+    File creato correttamente
+
+
+--- Output di esempio 2 ---
+   
+   $ ./es_create
+   Il file test esiste, vuoi eliminare il suo contenuto? [y/N]
+   y
+   Contenuto del file test eliminato correttamente
+
+
+=====================================================================
+
+
+
+
+
+
+
+=========================== es_openmod.c =============================
+
+Scrivere un programma che definisce una funzione open_mod() che 
+rappresenta una versione modificata della system call open().
+In particolare, la funzione deve rispettare la seguente
+interfaccia:
+
+     int open_mod(const char* name, char c)
+
+La funzione prende come argomento il nome del file da aprire e un carattere
+che specifica la modalità di apertura ('r' per sola lettura, 'w' per sola
+scrittura, 'a' per sola scrittura in append).
+La funzione restituisce il file descriptor aperto, oppure -1 in caso 
+di errore.
+
+Usare il seguente main() come main di prova:
+
+int main()
+{
+    int fd;
+        
+    if ( (fd = open_mod("file3", 'r')) == -1)
+        printf ("error in open_mod\n");
+    printf("fd %d opened\n", fd);
+    
+    if ( (fd = open_mod("file4", 'w')) == -1)
+        printf ("error in open_mod\n");
+    printf("fd %d opened\n", fd);
+    
+    if ( (fd = open_mod("file5", 'a')) == -1)
+        printf ("error in open_mod\n");
+    printf("fd %d opened\n", fd);
+  
+    return 0;
+}
+
+--- Output desiderato --- 
+
+    $ ./es_openmod
+    fd 3 opened
+    fd 4 opened
+    fd 5 opened
+    fd 4 closed
+    fd 4 opened
+
+
+
+
+*** SECONDA PARTE ***
+
+Aggiungere al programma una funzione close_mod() che 
+rappresenta una versione modificata della system call close().
+In particolare, la funzione deve rispettare la seguente
+interfaccia:
+
+     int close_mod(const char name[]);
+
+La funzione prende come argomento il nome del file di cui chiudere il 
+rispettivo file descriptor aperto, se presente.
+La funzione restituisce il numero del file descriptor appena chiuso, oppure
+-1 in caso di errore.
+
+
+Suggerimento:
+- per poter chiudere un file tramite il nome, è necessario mantenere il 
+  nome del file, associato al file descriptor ottenuto al momento
+  dell'apertura, in una struttura dati apposita.
+
+
+Usare il seguente main() come main di prova:
+
+int main()
+{
+    int fd;
+        
+    if ( (fd = open_mod("file3", 'r')) == -1)
+        printf ("error in open_mod\n");
+    printf("fd %d opened\n", fd);
+    
+    if ( (fd = open_mod("file4", 'w')) == -1)
+        printf ("error in open_mod\n");
+    printf("fd %d opened\n", fd);
+    
+    if ( (fd = open_mod("file5", 'a')) == -1)
+        printf ("error in open_mod\n");
+    printf("fd %d opened\n", fd);
+    
+    if ( (fd = close_mod("file4")) == -1)
+        printf ("error in close_mod\n");
+    printf("fd %d closed\n", fd);
+        
+    if ( (fd = open_mod("file5", 'a')) == -1)
+        printf ("error in open_mod\n");
+    printf("fd %d opened\n", fd);
+    
+    return 0;
+    
+}
+
+--- Output desiderato --- 
+
+    $ ./es_openmod
+    fd 3 opened
+    fd 4 opened
+    fd 5 opened
+    fd 4 closed
+    fd 4 opened
+
+
+=====================================================================

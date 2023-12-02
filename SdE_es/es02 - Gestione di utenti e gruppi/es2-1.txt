@@ -1,0 +1,35 @@
+/* Esercitazione 2-1
+ * 
+ * Gestione dei permessi
+ */
+
+1. Nella propria directory HOME, creare una directory "dir" e una sottodirectory "subdir".
+
+2. Creare un file di nome "password", contenente la stringa "lamiapasswordsegreta", in "dir"
+
+3. Togliere tutti i permessi di scrittura sul file "password". Provare a modificare il file. E' possibile?
+
+4. Spostarsi in "dir" ed effettuare una copia del file "password" assegnandogli il nome "password-dup". Provare a eliminare "password-dup". E' possibile?
+
+5. Copiare il file "password" nella directory "subdir" assegnandogli il nome "passwordnascosta". Provare a visualizzare e successivamente modificare il file "passwordnascosta". E' possibile?
+
+6. Togliere tutti i permessi di lettura sul file "passwordnascosta". Provare a visualizzare il file. E' possibile?
+
+7. Riportarsi nella directory HOME e togliere i permessi di esecuzione per il proprietario sulla directory "dir".
+   a) Si riesce a visualizzare il contenuto della directory "dir"? Perché?
+   b) Si riesce a visualizzare il contenuto della directory "subdir"? Perché?
+   c) Si riesce a visualizzare il contenuto del file "password"? Perché?
+
+   
+8. Utilizzando la rappresentazione ottale, riassegnare il permesso di scrittura al proprietario e togliere il permesso in lettura al proprietario. Lasciare invariati gli altri permessi.  
+   a) Si riesce a visualizzare il contenuto della directory "dir"? Perché?
+   b) Si riesce a visualizzare il contenuto della directory "subdir"? Perché?
+   c) Si riesce a visualizzare il contenuto del file "password"? Perché?
+   
+9. Creare un nuovo utente "alice". Spostarsi nella directory "/home/alice". E' possibile?
+
+10. Creare un file "filedialice" dentro "/home/alice" (cambiare i permessi se necessario). Chi e' il proprietario del file?
+
+11. Cambiare il proprietario e il gruppo proprietario di "filedialice", in modo che siano entrambi "alice". Verificare.
+
+12. Spostarsi nella home di "studente" e cambiare i permessi della home di "alice" in modo tale che solo "alice" possa vedere/modificare il contenuto e accedere alla sua home. Verificare se e' possibile visualizzare il contenuto di "/home/alice"

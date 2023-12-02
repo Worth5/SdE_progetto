@@ -1,0 +1,36 @@
+/* Soluzione 1-2
+ * 
+ * Modifica di file e redirezione
+ */
+
+1. 
+$ mkdir /home/studente/es1-2
+
+2. 
+$ gedit file2-1 file2-2 file2-3
+<Editare i tre file e salvare>
+
+Non e' possibile digitare comandi, il terminale e' bloccato perche' il processo gedit sta eseguendo in foreground
+Soluzione: aprire gedit in background
+$ gedit file2-1 file2-2 file2-3 &
+
+3. 
+$ less file2-1
+<uscire da less premendo 'q' (quit)
+
+4. 
+$ echo 1 > file2-1
+$ echo 2 > file2-2
+$ echo 3 > file2-3
+
+5. 
+$ cat file2-? > numeri
+
+6.
+$ echo 6 >> numeri
+
+7.
+$ tail -n 1 numeri
+
+8. 
+$ head -n 2 numeri | tail -n 1

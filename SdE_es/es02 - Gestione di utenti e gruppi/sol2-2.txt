@@ -1,0 +1,110 @@
+/* Soluzione 2-2
+ * 
+ * Gestione degli utenti
+ */
+
+1. 
+$ less /etc/passwd
+
+2.
+$ less /etc/passwd | grep home
+studente:x:1000:1000:studente,,,:/home/studente:/bin/bash
+alice:x:1001:1001:,,,:/home/alice:/bin/bash
+
+3. 
+$ adduser bob
+Adding user `bob' ...
+Adding new group `bob' (1002) ...
+Adding new user `bob' (1002) with group `bob' ...
+Creating home directory `/home/bob' ...
+Copying files from `/etc/skel' ...
+New password: 
+Retype new password: 
+passwd: password updated successfully
+Changing the user information for bob
+Enter the new value, or press ENTER for the default
+	Full Name []: 
+	Room Number []: 
+	Work Phone []: 
+	Home Phone []: 
+	Other []: 
+Is the information correct? [Y/n] Y
+$ su bob
+Password: 
+bob@debian-pc:/home/studente$
+$ cd ~
+
+4.
+$ mkdir dirdibob
+$ touch dirdibob/filedibob
+
+5. 
+$ su alice
+Password:
+$ ls dirdibob
+filedibob
+$ less dirdibob/filedibob
+
+6. 
+$ exit
+$ chown o-rwx filedibob
+
+7.
+$ su alice
+Password:
+$ ls dirdibob
+ls: cannot open directory 'dirdibob': Permission denied
+$ less dirdibob/filedibob
+dirdibob/filedibob: Permission denied
+
+8.
+$ exit
+$ exit
+
+9.
+$ sudo addgroup mobileapp
+$ sudo gpasswd -a bob mobileapp
+Adding user bob to group mobileapp
+
+
+10.
+$ su bob
+Password:
+$ cd ~
+$ chgrp mobileapp dirdibob
+
+11. 
+$ gpasswd -a alice mobileapp
+gpasswd: Permission denied.
+$ exit 
+$ sudo gpasswd -A bob mobileapp
+$ su bob
+Password:
+$ gpasswd -a alice mobileapp
+Adding user alice to group mobileapp
+
+12. 
+$ su alice
+Password:
+$ ls dirdibob
+filedibob
+$ less dirdibob/filedibob
+
+13.
+$ exit
+$ exit
+
+14.
+$ sudo delgroup mobileapp
+Removing group `mobileapp' ...
+Done.
+$ ls -l /home/bob
+drwxr-x--- 2 bob 1003 4096 Oct  7 15:28 dirdibob
+
+15.
+$ sudo deluser alice
+$ ls -l /home
+$ rm -r /home/alice
+
+16. 
+$ sudo deluser --remove-home bob

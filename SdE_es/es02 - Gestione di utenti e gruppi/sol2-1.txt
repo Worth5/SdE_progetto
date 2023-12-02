@@ -1,0 +1,97 @@
+/* Soluzione 2-1
+ * 
+ * Gestione dei permessi
+ */
+
+1. 
+$ mkdir dir
+$ mkdir subdir
+
+2. 
+$ echo "lamiapasswordsegreta" > dir/password
+
+3. 
+$ chmod -w password
+$ echo "nuovapassword" > password
+bash: password: Permission denied
+
+4. 
+$ cd dir
+$ cp password password-dup
+$ rm password-dup
+rm: remove write-protected regular file 'password-dup'? 
+
+5.
+$ cp password subdir/passwordnascosta
+
+6. 
+$ chmod -r subdir/passwordnascosta
+$ less subdir/passwordnascosta
+passwordnascosta: Permission denied
+
+7.
+$ chmod u-x dir
+$ ls dir
+ls: cannot access 'dir/password': Permission denied
+ls: cannot access 'dir/subdir': Permission denied
+password  subdir
+$ ls dir/subdir
+ls: cannot access 'dir/subdir': Permission denied
+$ less dir/password
+dir/password: Permission denied
+
+8. 
+$ ls -l
+drw-r-xr-x 3 studente studente 4096 Oct  7 14:44 dir
+$ chmod 355 dir
+$ ls -l
+d-wxr-xr-x 3 studente studente 4096 Oct  7 14:44 dir
+$ ls dir
+ls: cannot open directory 'dir': Permission denied
+$ ls dir/subdir
+passwordnascosta
+$ less dir/password
+lamiapasswordsegreta
+
+9. 
+$ 
+sudo adduser alice
+[sudo] password for studente: 
+Adding user `alice' ...
+Adding new group `alice' (1001) ...
+Adding new user `alice' (1001) with group `alice' ...
+Creating home directory `/home/alice' ...
+Copying files from `/etc/skel' ...
+New password: 
+Retype new password: 
+passwd: password updated successfully
+Changing the user information for alice
+Enter the new value, or press ENTER for the default
+	Full Name []: 
+	Room Number []: 
+	Work Phone []: 
+	Home Phone []: 
+	Other []: 
+Is the information correct? [Y/n] Y
+
+$ cd /home/alice
+
+10. 
+$ sudo chmod 757 /home/alice
+$ touch filedialice
+$ ls -l
+-rw-r--r-- 1 studente studente 0 Oct  7 15:11 filedialice
+
+11.
+$ sudo chown alice filedialice
+$ sudo chgrp alice filedialice
+$ ls -l
+-rw-r--r-- 1 alice alice 0 Oct  7 15:11 filedialice
+
+12.
+$ cd ~
+$ sudo chmod 700 /home/alice
+$ ls /home/alice
+ls: cannot open directory '/home/alice': Permission denied
+
+

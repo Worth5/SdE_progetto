@@ -1,0 +1,55 @@
+/*
+ * es8-1: uso di signal, fork, wait e exec
+ *
+ */
+
+*** PARTE 1 ***
+
+Scrivere un programma chiamato "slow_copy" che effettua la copia di un 
+file leggendo, un carattere alla volta, il contenuto di un file e 
+scrivendolo su un secondo file.
+I nomi dei file di input e di output devono essere passati come argomenti 
+al main dalla shell.
+
+
+*** PARTE 2 ***
+
+Fare in modo che il programma, durante la copia, visualizzi su standard output 
+il numero di caratteri copiati una volta al secondo. 
+Per realizzare questo comportamento e' necessario usare la system call alarm()
+per impostare un timer con durata di un secondo.
+
+
+Suggerimento: creare un file abbastanza grande in modo da impiegare un tempo 
+non trascurabile nel processo di copia, ad esempio usando il seguente comando 
+sulla shell per creare un file da 1GB di nome "bigfile":
+ 
+    dd if=/dev/zero of=bigfile bs=1024k count=1000 2> /dev/null
+
+
+*** PARTE 3 ***
+
+Scrivere un secondo programma chiamato "impatient_copy", che crea un processo
+figlio usando fork(). Il processo figlio deve mandare in esecuzione il programma
+"slow_copy" creato nella prima parte usando exec(), passandogli come argomento 
+i nomi dei file di input e di output.
+
+
+*** PARTE 4 ***
+
+Modificare "impatient_copy" in modo che prenda come argomento dalla shell anche
+un numero intero positivo. Quando viene creato il processo figlio, il processo
+genitore avvia un timer di durata pari al numero passato come argomento.
+Allo scadere del timer, se il processo figlio non e' ancora terminato, il processo 
+genitore invia al processo figlio un segnale di terminazione (SIGTERM) per 
+terminarlo forzatamente.
+
+
+*** PARTE 5 ***
+
+Modificare "slow_copy" e "impatient_copy" in modo tale che quando il processo genitore 
+invia il segnale di terminazione al processo figlio, quest'ultimo termina invocando
+la funzione exit() con codice di stato EXIT_FAILURE.
+Fare in modo che il processo genitore possa verificare se il processo figlio e'
+terminato con successo o fallimento, utilizzando il codice di stato osservabile con
+la system call wait().

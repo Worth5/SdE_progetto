@@ -1,0 +1,34 @@
+/* Es. 3-2 
+ *
+ * Richiami di linguaggio C: struct, stringhe, funzioni su stringhe
+ */
+
+=== 1 === 
+Scrivere un programma che legge due parole dalla tastiera e le assegna ai campi di una variabile di tipo 'struct Coppia'. La struttura Coppia ha due campi di tipo stringa chiamati 'min' e 'max'. 
+Il programma deve assegnare al campo 'min' la stringa che viene prima (alfabeticamente) e al campo 'max' la stringa che viene dopo. Ad esempio, se le parole sono "gatto" e "cane", la stringa 'min' conterra' il valore "cane", mentre la stringa 'max' conterra' il valore "gatto". Si assuma che le stringhe possano essere lunghe 100 caratteri, al massimo.
+=========
+
+=== 2 === 
+Scrivere una funzione che prende come argomento due stringhe e le concatena (ovvero, unisce in un'unica stringa). Nella stringa risultante, le due parole devono essere separate da uno spazio (ovvero, dal carattere ' ').
+Il main invoca tale funzione passandole come argomento le stringhe 'min' e 'max' della struttura costruita al punto 1. Nell'esempio del punto 1, la stringa risultante sara' "cane gatto". 
+=========
+
+=== 3 === 
+Scrivere una funzione che prende come argomento una stringa e restituisce il numero di volte che la lettera 'a' compare al suo interno. 
+Il main invoca tale funzione passandole come argomento la stringa ottenuta al passo 2. Il valore restituito dalla funzione viene stampato a video.
+=========
+
+
+
+===== Esempio di esecuzione =====
+
+Inserisci la prima parola: 
+ingegneria
+Inserisci la seconda parola: 
+pisa
+
+La stringa concatenata e' ingegneria pisa
+
+Il carattere 'a' compare 2 volte
+
+===================================
