@@ -1,5 +1,5 @@
-//alla fine controllare di lasciare 
-#include <stdint.h>				//for uint8_t
+//alla fine controllare di lasciare solo quelli che servono tipo <fcntl.h> non credo serva...
+#include <stdint.h>				//for uint8_t type
 #include <stdio.h>				//for standard I/O
 #include <string.h>				//for strerror()
 #include <errno.h>				//for errno
@@ -130,16 +130,24 @@ void manage_request(int sd, request rd){
 	}
 }
 
-voi help(){
-char* string ={""
-"Comandi disponibili\n"
-"help:\n"
-"--> mostra l’elenco dei comandi disponibili add [file]\n"
-"--> invia il file specificato al server remoto compress [alg]\n"
-"--> riceve dal server remoto l’archivio compresso secondo l’algoritmo specificato\n"
-"quit\n"
-"--> disconnessione\n"};
+void help(){
+const char* string =
+    "Comandi disponibili\n"
+    "help:\n"
+    "--> mostra l’elenco dei comandi disponibili add [file]\n"
+    "--> invia il file specificato al server remoto compress [alg]\n"
+    "--> riceve dal server remoto l’archivio compresso secondo l’algoritmo specificato\n"
+    "quit\n"
+    "--> disconnessione\n";
 printf(string);
+}
+
+void add(int sd, char* argument){
+	//codice
+}
+
+void compress(int sd, char* argument){
+	//codice
 }
 
 
