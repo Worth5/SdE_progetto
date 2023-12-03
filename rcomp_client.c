@@ -9,8 +9,8 @@
 
 
 struct request{					//idea creo una struttura che contiene comando e argomento
-    char* command;			
-    char* argument;		
+	char command[10];			
+	char argument[100];		
 	uint8_t valid;
 };
 
@@ -89,15 +89,7 @@ if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
 struct request get_request(){
 	printf("rcomp> ");
 	struct request rq;
-	
-	rq.command=malloc(10);
-	rq.argument=malloc(100);
-	
-	if (rq.command == NULL || rq.argument == NULL) {
-	    fprintf(stderr, "Memory allocation error\n");
-	    exit(EXIT_FAILURE);
-	}
-	
+
 	if (scanf("%9s", rq.command) != 1) {
         // Error reading the first string
         fprintf(stderr, "Error reading input: %s\n",strerror(errno));
