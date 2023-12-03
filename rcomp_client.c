@@ -26,10 +26,10 @@ void quit();
 
 int main(int argc, char* argv[]){
 	int sd=setup(argc, argv);   	//gestisce la creazione socket e connessione al server
-	
+	struct request rq;
     do{
-        struct request rq = get_request(); 	//creo struttura request
-        manage_request(sd, req);
+        rq = get_request(); 	//creo struttura request
+        manage_request(sd, rq);
     } while (strcmp(rq.command, "quit") != 0);
 }
 
@@ -47,18 +47,19 @@ int setup(int argc, char* argv[]){
             port_no = atoi(argv[2]); 	//manca controllo errore.... meglio cmbiare funzione completamente esempio strtol()
         }
         else {
-            char* addr_str = argv[2]
+            char* addr_str = argv[2];
             port_no = atoi(argv[1]); 	//manca controllo errore.... meglio cmbiare funzione completamente
         }
 	}
     else if(argc == 2){
-        if(strchr(argv[1], '.') != NULL)
+        if(strchr(argv[1], '.') != NULL){
 			char* addr_str = argv[1];
-		else
+		}
+		else{
 			port_no = atoi(argv[1]);
+		}
 	}
 	
-	in_addr_t address;
     if (inet_pton(AF_INET, addr_str, (void*)&address) < 0){
         fprintf(stderr, "Impossibile convertire l'indirizzo: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
@@ -96,7 +97,7 @@ struct request get_request(){
         exit(EXIT_FAILURE);
     }
 	if (scanf("%99s", rq.argument) != 1) {
-        rq.argument = NULL;
+        rq.argument[0] = '\0';
 		if(ferror(stdin)){
 			fprintf(stderr, "Error reading input: %s\n",strerror(errno));
        		exit(EXIT_FAILURE);
@@ -105,11 +106,11 @@ struct request get_request(){
 	int c;
     while ((c = getchar()) != '\n' && c != EOF);
 	
-	if((rd.valid = check_valid(rq.command)) == 0){
+	if((rq.valid = check_valid(rq.command)) == 0){
 		printf("Command not recognised\n");
 	}
 	
-	return rd;
+	return rq;
 }
 
 uint8_t check_valid(char* cmd){
