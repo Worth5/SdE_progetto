@@ -1,9 +1,7 @@
-//alla fine controllare di lasciare solo quelli che servono tipo <fcntl.h> non credo serva...
 #include <stdint.h>				//for uint8_t type
 #include <stdio.h>				//for standard I/O
 #include <string.h>				//for strerror()
 #include <errno.h>				//for errno
-#include <fcntl.h>				//for flags like O_RDONLY and SEEK_END
 #include <stdlib.h>				//for exit() and EXIT_FAILURE
 #include <unistd.h>				//for unbuffered functions-> read(), write(), STDIN_FILENO
 #include <sys/socket.h>			//for int socket(int domain, int type, int protocol);
@@ -11,28 +9,28 @@
 
 
 struct request{					//idea creo una struttura che contiene comando e argomento
-    char command[10];			//deve poter contenere al max "compress" quindo arrotondiamo a 10
-    char* argument[100];		//deve poter contenere indirizzo file quinddi potrebbe essere lungo (100 è esagerato)
-	bool valid;
+    char* command;			
+    char* argument;		
+	uint8_t valid;
 };
+
 int setup (int argc, char* argv[]);
-request get_request();                    
-void manage_request(request* rq);
-bool check_valid(char* command);
+struct request get_request();                    
+void manage_request(int sd, struct request rq);
+uint8_t check_valid(char* command);
 void help();
-void add();
-void compress();
+void add(int sd, char* argument);
+void compress(int sd, char* argument);
+void quit();
 
 
 int main(int argc, char* argv[]){
-
 	int sd=setup(argc, argv);   	//gestisce la creazione socket e connessione al server
 	
     do{
-        request rq = get_request(); 	//creo struttura request
+        struct request rq = get_request(); 	//creo struttura request
         manage_request(sd, req);
-    }
-    while(strcomp(rq.command,"quit"));
+    } while (strcmp(rq.command, "quit") != 0);
 }
 
 
@@ -44,20 +42,20 @@ int setup(int argc, char* argv[]){
     in_addr_t address;
 
     if(argc == 3){
-        if(strchr(argv[1],'.')!=NULL){
-            char* addr_str=argv[1];
+        if(strchr(argv[1], '.') != NULL){
+            char* addr_str = argv[1];
             port_no = atoi(argv[2]); 	//manca controllo errore.... meglio cmbiare funzione completamente esempio strtol()
         }
         else {
-            char* addr_str=argv[2]
+            char* addr_str = argv[2]
             port_no = atoi(argv[1]); 	//manca controllo errore.... meglio cmbiare funzione completamente
         }
 	}
     else if(argc == 2){
-        if(strchr(argv[1],'.')!=NULL)
-			char* addr_str=argv[1];
+        if(strchr(argv[1], '.') != NULL)
+			char* addr_str = argv[1];
 		else
-			port_no=atoi(argv[1]);
+			port_no = atoi(argv[1]);
 	}
 	
 	in_addr_t address;
@@ -88,36 +86,48 @@ if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
 	return sd;							//ritorno socket descriptor
   }    
 
-request get_request(){
+struct request get_request(){
 	printf("rcomp> ");
-	request rq;
-
-	if (scanf("%9s", &rq.command) != 1) {
+	struct request rq;
+	
+	rq.command=malloc(10);
+	rq.argument=malloc(100);
+	
+	if (rq.command == NULL || rq.argument == NULL) {
+	    fprintf(stderr, "Memory allocation error\n");
+	    exit(EXIT_FAILURE);
+	}
+	
+	if (scanf("%9s", rq.command) != 1) {
         // Error reading the first string
         fprintf(stderr, "Error reading input: %s\n",strerror(errno));
         exit(EXIT_FAILURE);
     }
-	if (scanf("%99s", &rq.argument) != 1) {
+	if (scanf("%99s", rq.argument) != 1) {
         rq.argument = NULL;
 		if(ferror(stdin)){
 			fprintf(stderr, "Error reading input: %s\n",strerror(errno));
        		exit(EXIT_FAILURE);
     	}
     }
-if((rd.valid = check_valid(rq.command)) == 0)
-	printf("Command not recognised\n");
-
-return rd;
+	int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+	
+	if((rd.valid = check_valid(rq.command)) == 0){
+		printf("Command not recognised\n");
+	}
+	
+	return rd;
 }
 
-bool check_valid(char* cmd){
+uint8_t check_valid(char* cmd){
 	if(strcmp(cmd,"help") && strcmp(cmd,"add") && strcmp(cmd,"compress") && strcmp(cmd,"quit"))
 		return 0;
 	else return 1;
 }
 
 
-void manage_request(int sd, request rd){
+void manage_request(int sd, struct request rd){
 	if(rq.valid){
 		if(!strcmp(rd.command,"help"))
 			help();
@@ -131,15 +141,15 @@ void manage_request(int sd, request rd){
 }
 
 void help(){
-const char* string =
-    "Comandi disponibili\n"
-    "help:\n"
-    "--> mostra l’elenco dei comandi disponibili add [file]\n"
-    "--> invia il file specificato al server remoto compress [alg]\n"
-    "--> riceve dal server remoto l’archivio compresso secondo l’algoritmo specificato\n"
-    "quit\n"
-    "--> disconnessione\n";
-printf(string);
+	const char* string =
+	    "Comandi disponibili\n"
+	    "help:\n"
+	    "--> mostra l’elenco dei comandi disponibili add [file]\n"
+	    "--> invia il file specificato al server remoto compress [alg]\n"
+	    "--> riceve dal server remoto l’archivio compresso secondo l’algoritmo specificato\n"
+	    "quit\n"
+	    "--> disconnessione\n";
+	printf(string);
 }
 
 void add(int sd, char* argument){
@@ -150,4 +160,7 @@ void compress(int sd, char* argument){
 	//codice
 }
 
+void quit() {
+    // code for quitting
+}
 
