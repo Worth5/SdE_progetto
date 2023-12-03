@@ -120,15 +120,15 @@ uint8_t check_valid(char* cmd){
 }
 
 
-void manage_request(int sd, struct request rd){
+void manage_request(int sd, struct request rq){
 	if(rq.valid){
-		if(!strcmp(rd.command,"help"))
+		if(!strcmp(rq.command,"help"))
 			help();
-		else if(!strcmp(rd.command,"add"))
-			add(sd, rd.argument);
-		else if(!strcmp(rd.command,"compress"))
-			compress(sd, rd.argument);
-		else if(!strcmp(rd.command,"quit"))
+		else if(!strcmp(rq.command,"add"))
+			add(sd, rq.argument);
+		else if(!strcmp(rq.command,"compress"))
+			compress(sd, rq.argument);
+		else if(!strcmp(rq.command,"quit"))
 			quit();
 	}
 }
