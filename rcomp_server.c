@@ -6,7 +6,6 @@
 #include <stdlib.h>	//for exit() and EXIT_FAILURE
 #include <unistd.h>	//for unbuffered functions-> read(), wriqte(), STDIN_FILENO
 
-#include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
