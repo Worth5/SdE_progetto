@@ -90,22 +90,21 @@ if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
 struct request get_request(){
 	printf("rcomp> ");
 	struct request rq;
-
-	if (scanf("%9s", rq.command) != 1) {
-        // Error reading the first string
-        fprintf(stderr, "Error reading input: %s\n",strerror(errno));
+	char input[120]; 
+	
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        fprintf(stderr, "Error reading input: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-	if (scanf("%99s", rq.argument) != 1) {
-        rq.argument[0] = '\0';
-		if(ferror(stdin)){
-			fprintf(stderr, "Error reading input: %s\n",strerror(errno));
-       		exit(EXIT_FAILURE);
-    	}
+    if (sscanf(input, "%9s %99s", rq.command, rq.argument) != 2) {
+        fprintf(stderr, "Input error: %s\n",strerror(errno));
+        exit(EXIT_FAILURE);
     }
-	int c;
-    while ((c = getchar()) != '\n' && c != EOF);
-	
+
+    int len = strlen(rq.argument);
+    if (len > 0 && rq.argument[len - 1] == '\n') {
+        rq.argument[len - 1] = '\0';
+    }
 	if((rq.valid = check_valid(rq.command)) == 0){
 		printf("Command not recognised\n");
 	}
@@ -146,14 +145,17 @@ void help(){
 }
 
 void add(int sd, char* argument){
+	printf("add");
 	//codice
 }
 
 void compress(int sd, char* argument){
+	printf("compress");
 	//codice
 }
 
 void quit() {
+	printf("quit");
     // code for quitting
 }
 
