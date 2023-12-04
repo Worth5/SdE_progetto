@@ -1,4 +1,4 @@
-
+//questa è la copia dell esempio prof pari pari se compilata ed eseguita permette di connetterci il client per testarlo
 #include <stdio.h>	//for standard I/O
 #include <string.h>	//for strerror()
 #include <errno.h>	//for errno
