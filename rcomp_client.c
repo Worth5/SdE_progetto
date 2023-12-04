@@ -79,14 +79,14 @@ int setup(int argc, char* argv[]){
     sa.sin_addr.s_addr = address;
 
 	
-printf("Connection...");				//connessione al server
-if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
-	fprintf(stderr, "\nConnection failed: %s\n", strerror(errno));
-	exit(EXIT_FAILURE);
-    }
+	printf("Connection...");				//connessione al server
+	if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
+		fprintf(stderr, "\nConnection failed: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 	printf("success!\n");
 	return sd;							//ritorno socket descriptor
-  }    
+}    
 
 struct request get_request(){
 	printf("rcomp> ");
@@ -112,7 +112,8 @@ struct request get_request(){
 uint8_t check_valid(char* cmd){
 	if(strcmp(cmd,"help") && strcmp(cmd,"add") && strcmp(cmd,"compress") && strcmp(cmd,"quit"))
 		return 0;
-	else return 1;
+	else 
+		return 1;
 }
 
 
@@ -120,10 +121,13 @@ void manage_request(int sd, struct request rq){
 	if(rq.valid){
 		if(!strcmp(rq.command,"help"))
 			help();
+			
 		else if(!strcmp(rq.command,"add"))
 			add(sd, rq.argument);
+			
 		else if(!strcmp(rq.command,"compress"))
 			compress(sd, rq.argument);
+			
 		else if(!strcmp(rq.command,"quit"))
 			quit();
 	}
