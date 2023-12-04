@@ -43,17 +43,17 @@ int setup(int argc, char* argv[]){
 
     if(argc == 3){
         if(strchr(argv[1], '.') != NULL){
-            char* addr_str = argv[1];
+            addr_str = argv[1];
             port_no = atoi(argv[2]); 	//manca controllo errore.... meglio cmbiare funzione completamente esempio strtol()
         }
         else {
-            char* addr_str = argv[2];
+        	addr_str = argv[2];
             port_no = atoi(argv[1]); 	//manca controllo errore.... meglio cmbiare funzione completamente
         }
 	}
     else if(argc == 2){
         if(strchr(argv[1], '.') != NULL){
-			char* addr_str = argv[1];
+			addr_str = argv[1];
 		}
 		else{
 			port_no = atoi(argv[1]);
@@ -96,12 +96,12 @@ struct request get_request(){
         fprintf(stderr, "Error reading input: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    if (sscanf(input, "%9s %99s[^\n]", rq.command, rq.argument) != 2) {	//[^\n] significa che non accetta \n come carattere quindi non assegna rq.argument se c'è solo rd.command si trova in man sscanf 
-        fprintf(stderr, "Input error: %s\n",strerror(errno));//errore per esempio caratteri illeggibili (? non sono sicuro)
-        exit(EXIT_FAILURE);
+    if (sscanf(input, "%9s %99s[^\n]", rq.command, rq.argument) < 1) {	//[^\n] significa che non accetta \n come carattere quindi non assegna rq.argument se c'è solo rd.command si trova in man sscanf 
+        rq.command[0]='\0';
+		rq.argument[0]='\0';
+		printf("No input detected");
     }
-
-	if((rq.valid = check_valid(rq.command)) == 0){
+	else if((rq.valid = check_valid(rq.command)) == 0){
 		printf("Command not recognised\n");
 	}
 	
