@@ -96,15 +96,11 @@ struct request get_request(){
         fprintf(stderr, "Error reading input: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    if (sscanf(input, "%9s %99s", rq.command, rq.argument) != 2) {
-        fprintf(stderr, "Input error: %s\n",strerror(errno));
+    if (sscanf(input, "%9s %99s[^\n]", rq.command, rq.argument) != 2) {	//[^\n] significa che non accetta \n come carattere quindi non assegna rq.argument se c'è solo rd.command si trova in man sscanf 
+        fprintf(stderr, "Input error: %s\n",strerror(errno));//errore per esempio caratteri illeggibili (? non sono sicuro)
         exit(EXIT_FAILURE);
     }
 
-    int len = strlen(rq.argument);
-    if (len > 0 && rq.argument[len - 1] == '\n') {
-        rq.argument[len - 1] = '\0';
-    }
 	if((rq.valid = check_valid(rq.command)) == 0){
 		printf("Command not recognised\n");
 	}
