@@ -61,14 +61,14 @@ int setup(int argc, char* argv[]){
 	}
 	
     if (inet_pton(AF_INET, addr_str, (void*)&address) < 0){
-        fprintf(stderr, "Impossibile convertire l'indirizzo: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to convert address: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
 
     int sd;
     if ( (sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-        fprintf(stderr, "Impossibile creare il socket: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to create socket: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     } 
 
@@ -79,11 +79,12 @@ int setup(int argc, char* argv[]){
     sa.sin_addr.s_addr = address;
 
 	
-printf("Connessione...\n");				//connessione al server
+printf("Connection...");				//connessione al server
 if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
-	fprintf(stderr, "Impossibile connettersi: %s\n", strerror(errno));
+	fprintf(stderr, "\nConnection failed: %s\n", strerror(errno));
 	exit(EXIT_FAILURE);
     }
+	printf("success!\n");
 	return sd;							//ritorno socket descriptor
   }    
 
@@ -99,7 +100,7 @@ struct request get_request(){
     if (sscanf(input, "%9s %99s[^\n]", rq.command, rq.argument) < 1) {	//[^\n] significa che non accetta \n come carattere quindi non assegna rq.argument se c'è solo rd.command si trova in man sscanf 
         rq.command[0]='\0';
 		rq.argument[0]='\0';
-		printf("No input detected");
+		printf("No input detected\n");
     }
 	else if((rq.valid = check_valid(rq.command)) == 0){
 		printf("Command not recognised\n");
@@ -131,27 +132,31 @@ void manage_request(int sd, struct request rq){
 void help(){
 	const char* string =
 	    "Comandi disponibili\n"
-	    "help:\n"
-	    "--> mostra l’elenco dei comandi disponibili add [file]\n"
-	    "--> invia il file specificato al server remoto compress [alg]\n"
-	    "--> riceve dal server remoto l’archivio compresso secondo l’algoritmo specificato\n"
-	    "quit\n"
-	    "--> disconnessione\n";
+	    "\thelp:\n"
+	    "\t--> mostra l’elenco dei comandi disponibili add [file]\n"
+		"\tadd:\n"
+	    "\t--> invia il file specificato al server remoto compress [alg]\n"
+		"\tcompress:\n"
+	    "\t--> riceve dal server remoto l’archivio compresso secondo l’algoritmo specificato\n"
+	    "\tquit\n"
+	    "\t--> disconnessione\n";
 	printf(string);
 }
 
 void add(int sd, char* argument){
-	printf("add");
+	printf("add command\n");					//debug se printa sei nella funzione
+	printf("file path: '%s'\n",argument);
 	//codice
 }
 
 void compress(int sd, char* argument){
-	printf("compress");
+	printf("compress command\n");				//debug se printa sei nella funzione
+	printf("compress method: '%s'\n",argument);
 	//codice
 }
 
 void quit() {
-	printf("quit");
+	printf("quit command\n");					//debug se printa sei nella funzione
     // code for quitting
 }
 
