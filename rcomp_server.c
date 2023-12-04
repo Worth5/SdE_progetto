@@ -10,56 +10,32 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 
-int process_client(int conn_sd)
-{
-    ssize_t rcvd_bytes, snd_bytes;
-    while(1)
-	{
-		// --- RICEZIONE LUNGHEZZA DELLA STRINGA --- //
-		int n;
-		rcvd_bytes = recv(conn_sd, &n, sizeof(int), 0);
-		if (rcvd_bytes < 0)
-		{
-			fprintf(stderr, "Impossibile ricevere dati su socket: %s\n", strerror(errno));
-			exit(EXIT_FAILURE);
-		}
-		n = ntohl(n); // conversione a formato host
-		printf("Ricevuto '%d'\n", n);
-
-		char* buff = malloc(n+1);
-	
-	    // --- RICEZIONE DATI --- //
-	    if ( (rcvd_bytes = recv(conn_sd, buff, n, 0)) < 0)
-	    {
-	        fprintf(stderr, "Impossibile ricevere dati su socket: %s\n", strerror(errno));
-	        exit(EXIT_FAILURE);
-	    }
-	    buff[rcvd_bytes] = '\0';
-
-	    printf("Ricevuto '%s'\n", rcvd_bytes, buff);
-
-	    // --- INVIO RISPOSTA --- //
-	    if ( (snd_bytes = send(conn_sd, "OK", 2, 0)) < 0)
-	    {
-	        fprintf(stderr, "Impossibile inviare dati su socket: %s\n", strerror(errno));
-	        exit(EXIT_FAILURE);
-	    }
-	    printf("Risposta inviata\n");
-
-	    if (strcmp(buff, "exit") == 0)
-	        break;
-	        
-	    free(buff);
-	}
-	
-	// --- CHIUSURA SOCKET CONNESSO --- //
-    close(conn_sd);
-}
+int process_client(int conn_sd);
 
 int main(int argc, char* argv[])
 {
     char* addr_str = "127.0.0.1";
     int port_no = 1234;
+
+	if(argc == 3){
+        if(strchr(argv[1], '.') != NULL){
+            addr_str = argv[1];
+            port_no = atoi(argv[2]); 	//manca controllo errore.... meglio cmbiare funzione completamente esempio strtol()
+        }
+        else {
+        	addr_str = argv[2];
+            port_no = atoi(argv[1]); 	//manca controllo errore.... meglio cmbiare funzione completamente
+        }
+	}
+    else if(argc == 2){
+        if(strchr(argv[1], '.') != NULL){
+			addr_str = argv[1];
+		}
+		else{
+			port_no = atoi(argv[1]);
+		}
+	}
+
 
     // --- CREAZIONE SOCKET --- //
     int sd;
@@ -157,5 +133,17 @@ int main(int argc, char* argv[])
 
 
 
-
-
+int process_client(int conn_sd)
+{
+    ssize_t rcvd_bytes, snd_bytes;
+    while(1)
+	{
+		// --- RICEZIONE LUNGHEZZA DELLA STRINGA --- //
+		char c;
+		rcvd_bytes = recv(conn_sd, &c, sizeof(char), 0);
+		printf("%c",c);
+	}
+	
+	// --- CHIUSURA SOCKET CONNESSO --- //
+    close(conn_sd);
+}
