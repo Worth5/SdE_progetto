@@ -79,7 +79,7 @@ int setup(int argc, char* argv[]){
     sa.sin_addr.s_addr = address;
 
 	
-	printf("Connecting.. %s:%s ..",addr_str, ntohs(sa.sin_port));
+	printf("Connecting.. %s:%d ..",addr_str, ntohs(sa.sin_port));
 	fflush(stdout);
 	if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
 		fprintf(stderr, "\nConnection failed: %s\n", strerror(errno));
