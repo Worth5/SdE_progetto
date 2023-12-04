@@ -80,7 +80,7 @@ int setup(int argc, char* argv[]){
 
 	
 	printf("Connection...");
-	fflush(stdin);
+	fflush(stdout);
 	if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
 		fprintf(stderr, "\nConnection failed: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
