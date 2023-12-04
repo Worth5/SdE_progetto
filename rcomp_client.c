@@ -79,7 +79,8 @@ int setup(int argc, char* argv[]){
     sa.sin_addr.s_addr = address;
 
 	
-	printf("Connection...");				//connessione al server
+	printf("Connection...");
+	flush();
 	if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
 		fprintf(stderr, "\nConnection failed: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
