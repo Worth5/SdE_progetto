@@ -1,17 +1,28 @@
 //questa è la copia dell esempio prof pari pari se compilata ed eseguita permette di connetterci il client per testarlo
-#include <stdio.h>	//for standard I/O
-#include <string.h>	//for strerror()
-#include <errno.h>	//for errno
-#include <fcntl.h>	//for flags like O_RDONLY and SEEK_END
-#include <stdlib.h>	//for exit() and EXIT_FAILURE
-#include <unistd.h>	//for unbuffered functions-> read(), wriqte(), STDIN_FILENO
+#include <stdio.h>		//for standard I/O
+#include <string.h>		//for strerror()
+#include <errno.h>		//for errno
+#include <fcntl.h>		//for flags like O_RDONLY and SEEK_END
+#include <stdlib.h>		//for exit() and EXIT_FAILURE
+#include <unistd.h>		//for unbuffered functions-> read(), wriqte(), STDIN_FILENO
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
+#include <sys/socket.h>	//for socket
+#include <arpa/inet.h>	//for inet_pton() INADDR_ANY credo...
+#include <sys/wait.h>	//boh ahah non ricordo perche l'ho inserito..... 🥲
 
-int process_client(int conn_sd);
+int connect_client(int argc, char* argv[]);
 
+
+
+int main(int argc, char* argv[])
+{
+	int sd = connect_client(int argc, char* argv[]);
+	
+
+
+
+
+}
 int main(int argc, char* argv[])
 {
     char* addr_str = "127.0.0.1";
