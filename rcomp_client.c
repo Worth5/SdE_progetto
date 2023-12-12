@@ -151,14 +151,15 @@ void help(){
 void add(int sd, char* argument){
 	printf("add command\n");					//debug se printa sei nella funzione
 	printf("file path: '%s'\n",argument);
-	//for(int i = 0; argument[i] != '\0'; i++){
-	//	if(argument[i] < 'A' && argument[i] > 'Z' || argument[i] < 'a' && argument[i] > 'z' || argument[i] < '0' || argument[i] > '9' || argument[i] != '.'){
-	//		fprintf(stderr, "ERROR: Invalid file name\n");
-	//		break;
-	//	}
-	//}
+	for(int i = 0; argument[i] != '\0'; i++){
+		if(argument[i] < 'A' || argument[i] > 'Z' && argument[i] < 'a' || argument[i] > 'z' && argument[i] < '0' || argument[i] > '9' && argument[i] != '.'){
+			fprintf(stderr, "ERROR: Invalid file name\n");
+			return;
+		}
+	}
 
-	//codice di controllo esistenza file
+	//codice per inviare il file
+	
 }
 
 void compress(int sd, char* argument){
