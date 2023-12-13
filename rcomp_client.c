@@ -198,7 +198,7 @@ void add(int sd, char* argument){
 	}
 
 	if(n < 0){
-		fprintf(stderr, "ERROR while reading (%s)\n", strerror(errno));
+		fprintf(stderr, "ERROR while reading (%s)\n");
 		exit(EXIT_FAILURE);
 	}
 	
