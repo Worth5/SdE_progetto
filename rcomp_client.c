@@ -4,8 +4,10 @@
 #include <errno.h>				//for errno
 #include <stdlib.h>				//for exit() and EXIT_FAILURE
 #include <unistd.h>				//for unbuffered functions-> read(), write(), STDIN_FILENO
+#include <fcntl.h>				//for open()
 #include <sys/socket.h>			//for int socket(int domain, int type, int protocol);
 #include <arpa/inet.h>			//for uint16_t htons(uint16_t data);
+#include <sys/stat.h>			//for stat() file size
 
 
 struct request{					//idea creo una struttura che contiene comando e argomento
@@ -151,6 +153,7 @@ void help(){
 void add(int sd, char* argument){
 	printf("add command\n");					//debug se printa sei nella funzione
 	printf("file path: '%s'\n",argument);
+	
 	for(int i = 0; argument[i] != '\0'; i++){
 		if(argument[i] < 'A' || argument[i] > 'Z' && argument[i] < 'a' || argument[i] > 'z' && argument[i] < '0' || argument[i] > '9' && argument[i] != '.'){
 			fprintf(stderr, "ERROR: Invalid file name\n");
@@ -158,7 +161,47 @@ void add(int sd, char* argument){
 		}
 	}
 
-	//codice per inviare il file
+	int fd;
+
+	if((fd = open(argument, O_RDONLY)) < 0){
+		fprintf(stderr, "ERROR: File %s not found (%s)\n", argument, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	
+	struct stat metadata;
+	if(stat(argument, &metadata) < 0){
+		fprintf(stderr, "ERROR: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	off_t file_size = metadata.st_size;
+
+	//------------INVIO LUNGHEZZA----------------//
+
+	ssize_t snd_bytes;
+	int file_size_n = htonl(file_size);
+	if((snd_bytes = send(sd, &file_size_n, sizeof(int), 0)) < 0){
+		fprintf(stderr, "ERROR: Impossible to send size file (%s)\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	//------------INVIO MESSAGGIO----------------//
+	
+	const int BUFFSIZE = 4096;
+	char buff[BUFFSIZE];
+	int n;
+	
+	while((n = read(fd, buff, BUFFSIZE)) > 0){
+		if((snd_bytes = send(sd, buff, n, 0)) < 0){
+			fprintf(stderr, "ERROR: Impossible to send message (%s)\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	if(n < 0){
+		fprintf(stderr, "ERROR while reading (%s)\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	
 	
 }
 
