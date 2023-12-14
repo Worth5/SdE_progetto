@@ -44,7 +44,7 @@ void stream_socket(int sd)
     while (1)
     {    
         // --- ATTESA DI CONNESSIONE --- //
-        printf("--- In attesa di connessione ---\n");
+        printf("--- In attesa di connessione ---\n" );
         if ( (conn_sd = accept(sd, (struct sockaddr*)&client_addr, &client_addr_len)) < 0)
         {
             fprintf(stderr, "Impossibile accettare connessione su socket: %s\n", strerror(errno));

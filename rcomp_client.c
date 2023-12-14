@@ -23,17 +23,15 @@ void add(int sd, char* argument);
 void compress(int sd, char* argument);
 void quit();
 
-
-int main(int argc, char* argv[]){
-	int sd=setup(argc, argv);   	//gestisce la creazione socket e connessione al server
+int main(int argc, char *argv[])
+{
+	int sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
 	struct request rq;
-    do{
-        rq = get_request(); 	//creo struttura request
-        manage_request(sd, rq);
-    } while (strcmp(rq.command, "quit") != 0);
+	do{
+		rq = get_request(); // creo struttura request
+		manage_request(sd, rq);
+	} while (strcmp(rq.command, "quit") != 0);
 }
-
-
 
 int setup(int argc, char* argv[]){
 
@@ -152,7 +150,7 @@ void add(int sd, char* argument){
 	printf("add command\n");					//debug se printa sei nella funzione
 	printf("file path: '%s'\n",argument);
 	for(int i = 0; argument[i] != '\0'; i++){
-		if(argument[i] < 'A' || argument[i] > 'Z' && argument[i] < 'a' || argument[i] > 'z' && argument[i] < '0' || argument[i] > '9' && argument[i] != '.'){
+		if(argument[i] < 'A' || argument[i] > 'Z' && argument[i] < 'a' || argument[i] > 'z' && argument[i] < '0' || argument[i] > '9' && argument[i] != '.'){	//mancano parentesi attorno alle condizioni ||
 			fprintf(stderr, "ERROR: Invalid file name\n");
 			return;
 		}
@@ -170,6 +168,10 @@ void compress(int sd, char* argument){
 
 void quit() {
 	printf("quit command\n");					//debug se printa sei nella funzione
-    // code for quitting
+	char *c = "q";
+	if ((snd_bytes = send(conn_sd, &c, sizeof(c), 0)) < 0){
+		fprintf(stderr, "Impossibile inviare dati su socket: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 }
 
