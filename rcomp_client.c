@@ -207,7 +207,7 @@ void add(int sd, char* argument){
 
 void compress(int sd, char* argument){
 	int sd;
-	int alg;
+	char* argument;
 	printf("compress command\n");				//debug se printa sei nella funzione
 	printf("compress method: '%s'\n",argument);
 	//codice
