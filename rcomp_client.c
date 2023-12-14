@@ -29,7 +29,7 @@ void quit();
 
 int main(int argc, char *argv[])
 {
-	if(signal(SIGINT, sigint_handler) == SIG_ERR){													//Registrazione handler per il segnale SIGINT
+if(signal(SIGINT, sigint_handler) == SIG_ERR){													//Registrazione handler per il segnale SIGINT
 		fprintf(stderr, "ERROR: Handler SIGINT registration failed (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
@@ -97,17 +97,19 @@ int setup(int argc, char* argv[]){
 }    
 
 struct request get_request(){
+
 	printf("rcomp> ");
-	struct request rq;
+
+	struct request rq = {0};	//struttura inizializzata a zero
+
 	char input[120]; 
 	
     if (fgets(input, sizeof(input), stdin) == NULL) {
         fprintf(stderr, "Error reading input: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    if (sscanf(input, "%9s %99s[^\n]", rq.command, rq.argument) < 1) {	//[^\n] significa che non accetta \n come carattere quindi non assegna rq.argument se c'è solo rd.command si trova in man sscanf 
-        rq.command[0]='\0';
-		rq.argument[0]='\0';
+
+    if (sscanf(input, "%9s %99s[^\n]", rq.command, rq.argument) < 1) {	//[^\n] significa che non accetta \n come carattere quindi non assegna rq.argument se c'è solo rd.command si trova in man sscanf
 		printf("No input detected\n");
     }
 	else if((rq.valid = check_valid(rq.command)) == 0){
@@ -160,7 +162,7 @@ void add(int sd, char* argument){
 	printf("file path: '%s'\n",argument);
 	
 	for(int i = 0; argument[i] != '\0'; i++){
-		if((argument[i] < 'A' || argument[i] > 'Z') && (argument[i] < 'a' || argument[i] > 'z') && (argument[i] < '0' || argument[i] > '9') && argument[i] != '.'){	
+		if((argument[i] < 'A' || argument[i] > 'Z') && (argument[i] < 'a' || argument[i] > 'z') && (argument[i] < '0' || argument[i] > '9') && argument[i] != '.'){
 			fprintf(stderr, "ERROR: Invalid file name\n");
 			return;
 		}
@@ -190,7 +192,7 @@ void add(int sd, char* argument){
 	}
 
 	//------------INVIO MESSAGGIO----------------//
-	
+
 	const int BUFFSIZE = 4096;
 	char buff[BUFFSIZE];
 	int n;
@@ -207,9 +209,9 @@ void add(int sd, char* argument){
 	if(n < 0){
 		fprintf(stderr, "ERROR while reading\n");
 		exit(EXIT_FAILURE);
-	}
+	}	
 	
-	printf("File %s sent\n", argument);
+printf("File %s sent\n", argument);
 }
 
 void compress(int sd, char* argument){
@@ -217,16 +219,18 @@ void compress(int sd, char* argument){
 	printf("compress command\n");				//debug se printa sei nella funzione
 	printf("compress method: '%s'\n",argument);
 	ssize_t snd_bytes;
-	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0) {
-            if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0)//Dico al server quale algoritmo usare
-	    { //Dico al server quale algoritmo usare
-	       printf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
-               exit(EXIT_FAILURE);
-	    }
-            printf("Messaggio inviato al server: %s\n", argument);
-        } else {
-        printf("Errore: Algoritmo non valido. Utilizzare 'z' per gzip o 'j' per bzip2.\n");
-    }
+
+
+	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0){
+		if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0){ // Dico al server quale algoritmo usare
+			printf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+		printf("Messaggio inviato al server: %s\n", argument);
+	}
+	else{
+		printf("Errore: Algoritmo non valido. Utilizzare 'z' per gzip o 'j' per bzip2.\n");
+	}
 }
 
 void quit() {
