@@ -21,14 +21,14 @@ int main(int argc, char* argv[]){
 	int sd = setup(int argc, char* argv[]);	//crea socket imposta sockopt esegue bind e listen 
 
 	while(1){
-		int conn_sd = connect_client(sd);	//esegue connet e restituisce connection socket 
-		int valid_input=1;
-		char *command="0";
+		int conn_sd = connect_client(sd); // esegue connet e restituisce connection socket
+		int valid_input = 1;
+		char command[10] = "0";
 
-		while (valid_input && memcmp(command,"q")){	 //finche input è valido e diverso da "q"
+		while (valid_input && strcmp(command, "q")){ // finche input è valido e diverso da "q"
 			ssize_t rcvd_bytes;
 
-			if ((rcvd_bytes = recv(conn_sd, &command, sizeof(c), 0)) < 0){
+			if ((rcvd_bytes = recv(conn_sd, &command, sizeof(command), 0)) < 0){
 				fprintf(stderr, "Impossibile ricevere dati su socket: %s\n", strerror(errno));
 				exit(EXIT_FAILURE);
 			}
@@ -45,7 +45,7 @@ int main(int argc, char* argv[]){
 				valid_input = 0;
 				printf("Invalid command detected\n");
 			}
-		}	
+		}
 		printf("Closing connection\n")
 		close(conn_sd);
 	}
@@ -126,8 +126,6 @@ int connect_client(int sd){
 	printf("Connesso al client %s:%d\n", addr_str, ntohs(client_addr.sin_port));
 	return conn_sd;
 }
-
-
 
 void get_request(conn_sd, struct request &rq){
 	ssize_t rcvd_bytes, snd_bytes;
