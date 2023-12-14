@@ -17,7 +17,7 @@ struct request{					//idea creo una struttura che contiene comando e argomento
 	uint8_t valid;
 };
 
-void sigint_handler(int signo){quit()};
+void sigint_handler(int signo){quit();};
 int setup (int argc, char* argv[]);
 struct request get_request();                    
 void manage_request(int sd, struct request rq);
@@ -220,7 +220,7 @@ void compress(int sd, char* argument){
 	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0) {
             if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0)//Dico al server quale algoritmo usare
 	    { //Dico al server quale algoritmo usare
-	       printf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
+	       fprintf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
                exit(EXIT_FAILURE);
 	    }
             printf("Messaggio inviato al server: %s\n", argument);
