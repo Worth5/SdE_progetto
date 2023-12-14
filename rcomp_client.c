@@ -206,11 +206,21 @@ void add(int sd, char* argument){
 }
 
 void compress(int sd, char* argument){
-	int sd;
-	char* argument;
+
 	printf("compress command\n");				//debug se printa sei nella funzione
 	printf("compress method: '%s'\n",argument);
-	//codice
+	
+	if (strcmp(argument, "z") == 0) {
+        // Implementa la logica per l'algoritmo di compressione Gzip
+      
+        // Codice specifico per Gzip...
+        } else if (strcmp(argument, "j") == 0) {
+        // Implementa la logica per l'algoritmo di compressione Bzip2
+        
+        // Codice specifico per Bzip2...
+        } else {
+        printf("Errore: Algoritmo non valido. Utilizzare 'z' per gzip o 'j' per bzip2.\n");
+        }
 }
 
 void quit() {
