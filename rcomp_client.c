@@ -12,9 +12,8 @@
 
 
 struct request{					//idea creo una struttura che contiene comando e argomento
-	char command[10];			
-	char argument[100];		
-	uint8_t valid;
+	char *command;			
+	char *argument;
 };
 
 void sigint_handler(int signo){quit()};
@@ -29,17 +28,19 @@ void quit();
 
 int main(int argc, char *argv[])
 {
-if(signal(SIGINT, sigint_handler) == SIG_ERR){													//Registrazione handler per il segnale SIGINT
+	if(signal(SIGINT, sigint_handler) == SIG_ERR){													//Registrazione handler per il segnale SIGINT
 		fprintf(stderr, "ERROR: Handler SIGINT registration failed (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	
 	int sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
-	struct request rq;
-	do{
+	struct request rq = {0};
+
+	while (strcmp(rq.command, "quit") != 0){
 		rq = get_request(); // creo struttura request
 		manage_request(sd, rq);
-	} while (strcmp(rq.command, "quit") != 0);
+	}
+	quit(sd);//manda mess a server chiude socket e esegue exit(EXIT_SUCCESS)
 }
 
 int setup(int argc, char* argv[]){
@@ -96,12 +97,13 @@ int setup(int argc, char* argv[]){
 	return sd;							//ritorno socket descriptor
 }    
 
-struct request get_request(){
+
+//vecchio get request
+/*
+struct request get_request_vecchio(){	
 
 	printf("rcomp> ");
-
 	struct request rq = {0};	//struttura inizializzata a zero
-
 	char input[120]; 
 	
     if (fgets(input, sizeof(input), stdin) == NULL) {
@@ -112,34 +114,87 @@ struct request get_request(){
     if (sscanf(input, "%9s %99s[^\n]", rq.command, rq.argument) < 1) {	//[^\n] significa che non accetta \n come carattere quindi non assegna rq.argument se c'è solo rd.command si trova in man sscanf
 		printf("No input detected\n");
     }
-	else if((rq.valid = check_valid(rq.command)) == 0){
-		printf("Command not recognised\n");
-	}
 	
 	return rq;
 }
+*/
 
-uint8_t check_valid(char* cmd){
-	if(strcmp(cmd,"help") && strcmp(cmd,"add") && strcmp(cmd,"compress") && strcmp(cmd,"quit"))
-		return 0;
-	else 
-		return 1;
+struct request get_request(){ //il nuovo get request assegna memoria dinamicamente
+
+	printf("rcomp> ");
+	struct request rq = {.command=NULL, .argument=NULL}; // struttura inizializzata a zero
+
+	//modo carino di leggere tutto stdin dinamicamente ma che non serve nel nostro caso
+	/*
+	int STEP = 0;
+	int SIZE = 10;
+	char *input = (char *)malloc(SIZE);
+	while (fgets(input + (STEP * SIZE), SIZE, stdin) != NULL){
+		input = (char *)realloc(input, SIZE * (++STEP));
+	}
+	if (ferror){
+		fprintf(stderr, "Error reading input: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	free(input);
+	*/
+	int c;
+	int STEP = 2;
+	while ((c = getchar()) != '\n'){
+		if (c < 0){
+			printf("ERROR while reading input: %s",strerror(errno));
+			exit(EXIT_FAILURE):
+		}
+		rq.command = (char *)realloc(rq.command, STEP++);
+		if (c == " "){
+			break;
+		}
+		strcat(rq.command, &(char)c);
+	}
+	if (rq.command == NULL){
+		printf("no command detected\n");
+	}
+	else{
+		printf("command: %s\n", rq.command);
+	}
+
+	STEP = 2;
+	if (c != '\n'){
+		while ((c = getchar()) != '\n' && c != EOF){
+			if (c < 0){
+				printf("ERROR while reading input: %s",strerror(errno));
+				exit(EXIT_FAILURE):
+			}
+			rq.command = (char *)realloc(rq.argument, STEP++);
+			if (c == " "){
+				break;
+			}
+		strcat(rq.command, &c);
+	}
+	if (rq.argument == NULL){
+		printf("No argument detected\n");
+	}
+	else{
+		printf("argument: %s\n", rq.argument);
+	}
+
+	return rq;
 }
 
 
 void manage_request(int sd, struct request rq){
-	if(rq.valid){
-		if(!strcmp(rq.command,"help"))
-			help();
-			
-		else if(!strcmp(rq.command,"add"))
-			add(sd, rq.argument);
-			
-		else if(!strcmp(rq.command,"compress"))
-			compress(sd, rq.argument);
-			
-		else if(!strcmp(rq.command,"quit"))
-			quit();
+
+	if(!strcmp(rq.command,"help")){
+		help();
+	}	
+	else if(!strcmp(rq.command,"add")){
+		add(sd, rq.argument);
+	}
+	else if(!strcmp(rq.command,"compress")){
+		compress(sd, rq.argument);
+	}
+	else if(strcmp(rq.command,"quit")){
+		printf("ERROR: unknown command\n";)
 	}
 }
 
@@ -233,12 +288,16 @@ void compress(int sd, char* argument){
 	}
 }
 
-void quit() {
+void quit(int sd) {
 	printf("quit command\n");					//debug se printa sei nella funzione
 	char *c = "q";
+
 	if ((snd_bytes = send(conn_sd, &c, sizeof(c), 0)) < 0){
 		fprintf(stderr, "Impossibile inviare dati su socket: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+
+	close(sd);
+	exit(EXIT_SUCCESS);
 }
 
