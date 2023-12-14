@@ -4,6 +4,7 @@
 #include <errno.h>				//for errno
 #include <stdlib.h>				//for exit() and EXIT_FAILURE
 #include <unistd.h>				//for unbuffered functions-> read(), write(), STDIN_FILENO
+#include <signal.h>				//for signal handler
 #include <fcntl.h>				//for open()
 #include <sys/socket.h>			//for int socket(int domain, int type, int protocol);
 #include <arpa/inet.h>			//for uint16_t htons(uint16_t data);
@@ -16,6 +17,7 @@ struct request{					//idea creo una struttura che contiene comando e argomento
 	uint8_t valid;
 };
 
+void sigint_handler(int signo){quit()};
 int setup (int argc, char* argv[]);
 struct request get_request();                    
 void manage_request(int sd, struct request rq);
@@ -27,6 +29,11 @@ void quit();
 
 int main(int argc, char *argv[])
 {
+	if(signal(SIGINT, sigint_handler) == SIG_ERR){													//Registrazione handler per il segnale SIGINT
+		fprintf(stderr, "ERROR: Handler SIGINT registration failed (%s)\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	
 	int sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
 	struct request rq;
 	do{
