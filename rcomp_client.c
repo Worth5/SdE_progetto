@@ -213,10 +213,10 @@ void compress(int sd, char* argument){
 	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0) {
             if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0)//Dico al server quale algoritmo usare
 	    { //Dico al server quale algoritmo usare
-	       fprintf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
+	       printf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
                exit(EXIT_FAILURE);
 	    }
-            fprintf("Messaggio inviato al server: %s\n", argument);
+            printf("Messaggio inviato al server: %s\n", argument);
         } else {
         printf("Errore: Algoritmo non valido. Utilizzare 'z' per gzip o 'j' per bzip2.\n");
     }
