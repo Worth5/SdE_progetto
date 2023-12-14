@@ -209,8 +209,18 @@ void compress(int sd, char* argument){
 
 	printf("compress command\n");				//debug se printa sei nella funzione
 	printf("compress method: '%s'\n",argument);
-	
+	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0) {
+            ssize_t bytes_sent = send(sd, argument, strlen(argument), 0); //Dico al server quale algoritmo usare
 
+            // Verifica se l'invio ha avuto successo
+            if (bytes_sent == -1) {
+                perror("Errore durante l'invio del messaggio al server");
+                return;
+	    }
+            printf("Messaggio inviato al server: %s\n", argument);
+        } else {
+        printf("Errore: Algoritmo non valido. Utilizzare 'z' per gzip o 'j' per bzip2.\n");
+    }
 }
 
 void quit() {
