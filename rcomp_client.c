@@ -153,7 +153,7 @@ void add(int sd, char* argument){
 	printf("file path: '%s'\n",argument);
 	
 	for(int i = 0; argument[i] != '\0'; i++){
-		if(argument[i] < 'A' || argument[i] > 'Z' && argument[i] < 'a' || argument[i] > 'z' && argument[i] < '0' || argument[i] > '9' && argument[i] != '.'){	//mancano parentesi attorno alle condizioni ||
+		if((argument[i] < 'A' || argument[i] > 'Z') && (argument[i] < 'a' || argument[i] > 'z') && (argument[i] < '0' || argument[i] > '9') && argument[i] != '.'){	
 			fprintf(stderr, "ERROR: Invalid file name\n");
 			return;
 		}
@@ -187,6 +187,8 @@ void add(int sd, char* argument){
 	const int BUFFSIZE = 4096;
 	char buff[BUFFSIZE];
 	int n;
+
+	printf("Sending file %s to the current server...\n", argument);
 	
 	while((n = read(fd, buff, BUFFSIZE)) > 0){
 		if((snd_bytes = send(sd, buff, n, 0)) < 0){
@@ -196,11 +198,11 @@ void add(int sd, char* argument){
 	}
 
 	if(n < 0){
-		fprintf(stderr, "ERROR while reading (%s)\n");
+		fprintf(stderr, "ERROR while reading\n");
 		exit(EXIT_FAILURE);
 	}
 	
-	
+	printf("File %s sent\n", argument);
 }
 
 void compress(int sd, char* argument){
