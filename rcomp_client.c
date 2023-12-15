@@ -10,10 +10,9 @@
 #include <arpa/inet.h>			//for uint16_t htons(uint16_t data);
 #include <sys/stat.h>			//for stat() file size
 
-// da quel che ho capito non si possono passare argomenti a signal handler quindi gli facciamo cambiare una variabile gloale che usimo nel main loop
-// quando end_signal==1 si esce da main loop e si esegue exit
-int end_signal = 0;
-void sigint_handler(int signo) { end_signal = 1; } 
+//abilita printf di debug all'interno dell funzione debug()
+#define DEBUG_LEVEL 10 //0  disabilita tutte printf di debug, più è alto il valore maggiori saranno le printf...
+
 
 //creo una struttura che contiene comando e argomento
 struct request{					
@@ -26,8 +25,20 @@ int setup (int argc, char* argv[]);
 void get_request(struct request rq);                    
 void manage_request(int sd, struct request rq);
 
-//funzioni accessorie
+//funzioni necessarie
 int fget_word(FILE* fd, char* str);
+int parse_argv_for_ip(int argc, char* argv[]);
+int parse_argv_for_port(int argc, char* argv[]);
+
+//funzioni accessorie/opzionali
+void debug(char *str, int level){	//stampa in verde messaggio debug
+	#ifdef DEBUG_LEVEL
+		if (DEBUG_LEVEL >= level){
+			while(level--)printf("\t");	//indenta level volte per visibilità
+			printf("\033[0;34m%s\033[1;0m", str); //colore verde \033[1;32m colore normale \033[1;0m
+		}
+	#endif
+}
 
 //funzioni che client deve eseguire
 void help();
@@ -35,68 +46,80 @@ void add(int sd, char* argument);
 void compress(int sd, char* argument);
 void quit(int sd, struct request rq);
 
-	//---------- MAIN ---------- //
+// da quel che ho capito non si possono passare variabili con visibilità main
+// quando end_signal==1 si esce da main loop e si esegue exit
+int end_signal = 0;
+void sigint_handler(int signo) { debug("sigint",1); end_signal = 1; } 
+
+
+		//--------------- MAIN --------------- //
 int main(int argc, char *argv[]){
+	debug("main()_start\n",1);
 
 	if(signal(SIGINT, sigint_handler) == SIG_ERR){			//Registrazione handler per il segnale SIGINT
 		fprintf(stderr, "ERROR: Handler SIGINT registration failed (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+
 	
 	int sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
-	struct request rq = {.command="", .argument=""};
-
+	struct request rq = {.command = malloc(1), .argument = malloc(1)};//crea struttura request che viene usata ogni ciclo e eliminata in quit
+	
 	while ((strcmp(rq.command, "quit") != 0) || end_signal){
+		debug("main()_while\n",2);
 		get_request(rq); 		// alloco memoria necessaria a contenere stringa richiesta si potrebbe fare più efficente salvando nella struttura 2 variabili LEN1 e LEN2 che salvano lo spazio già allocato per comando e argomnto
 		manage_request(sd, rq);	// controllo contenuto request e chiamo la funzione principale corrispondente
 	}
+	debug("main()_quit\n",1);
 	quit(sd, rq);				//manda mess a server chiude socket libera memoria allocata e esegue exit(EXIT_SUCCESS)
 }
 
+
+
 int setup(int argc, char* argv[]){
-
-    char* addr_str = "127.0.0.1";
-    int port_no = 1234;
-    in_addr_t address;
-
-    if(argc == 3){
-        if(strchr(argv[1], '.') != NULL){
-            addr_str = argv[1];
-            port_no = atoi(argv[2]); 	//manca controllo errore.... meglio cmbiare funzione completamente esempio strtol()
-        }
-        else {
-        	addr_str = argv[2];
-            port_no = atoi(argv[1]); 	//manca controllo errore.... meglio cmbiare funzione completamente
-        }
+	debug("setup()\n",2);
+    
+    char addr_str[16] = "127.0.0.1";
+	int ip_pos = parse_argv_for_ip(argc, argv);
+	if(ip_pos > 0){
+		strcpy(addr_str,argv[ip_pos]);
+		printf("ip address:%s\n",addr_str);
 	}
-    else if(argc == 2){
-        if(strchr(argv[1], '.') != NULL){
-			addr_str = argv[1];
-		}
-		else{
-			port_no = atoi(argv[1]);
-		}
+	else {
+		printf("no valid ip address, using default:%s\n",addr_str);
 	}
-	
-    if (inet_pton(AF_INET, addr_str, (void*)&address) < 0){
+
+	int port_no = 1234;
+	int port_pos = parse_argv_for_port(argc, argv);
+	if(port_pos > 0){
+		port_no = atoi(argv[port_pos]);
+		printf("port:%d\n",port_no);
+	}
+	else{
+		printf("no valid port, using default:%d\n",port_no);
+	}
+    
+	//trasfmormo ip in formato numerico richiesto
+	in_addr_t address;
+    if (inet_pton(AF_INET, addr_str, (void*)&address) < 0){ 
         fprintf(stderr, "Failed to convert address: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
-
+	//creo socket
     int sd;
     if ( (sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
         fprintf(stderr, "Failed to create socket: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     } 
 
-	
-    struct sockaddr_in sa;				// preparazione della struttura contenente indirizzo IP e porta
+	// preparazione della struttura contenente indirizzo IP e porta
+    struct sockaddr_in sa;				
     sa.sin_family = AF_INET;
     sa.sin_port = htons(port_no);
     sa.sin_addr.s_addr = address;
 
-	
+	//connessione
 	printf("Connecting to server %s:%d ...",addr_str, ntohs(sa.sin_port));
 	fflush(stdout);
 	if (connect(sd, (struct sockaddr*)&sa, sizeof(struct sockaddr_in)) < 0){
@@ -106,6 +129,54 @@ int setup(int argc, char* argv[]){
 	printf("success!\n");
 	return sd;							//ritorno socket descriptor
 }    
+
+int parse_argv_for_ip(int argc, char* argv[]){
+	debug("parse_argv_for_ip()\n",3);
+	int byte[4];
+	for(int j = 1; j < argc; j++){
+
+		if(sscanf(argv[j],"%d.%d.%d.%d",&byte[0],&byte[1],&byte[2],&byte[3])==4){//controllo quale argomento ha formato ip
+			debug("parse_argv_for_ip() checking possible ip\n",4);
+			int check = 1;
+			for(int i = 0; i< (sizeof(byte) / sizeof(byte[0])); i++){
+				
+				if((byte[i]<0) || (byte[i]>255)){	//controllo che sia ip valido
+					check = 0;
+				}
+			}
+			if(check){
+				debug("valid ip found\n",3);
+				return j; // ritorno numero argomento argc valido
+			}
+		}
+	}
+	debug("no arg has valid ip\n",3);
+	return -1;
+}
+
+
+int parse_argv_for_port(int argc, char* argv[]){
+
+	debug("parse_argv_for_port()\n",3);
+	for(int j = 1; j < argc; j++){
+		debug("arg\n",4);
+		int check=1;
+		for(int i = 0; argv[j][i]!='\0'; i++){
+			char c[3]={i+'0','\n','\0'};
+			debug(c,5);
+			if(argv[j][i]<'0' || argv[j][i]>'9'){
+				check=0;
+			}
+		}
+		if(check){
+			debug("valid port found\n",3);
+			return j;
+		}
+		
+	}
+	debug("no arg has valid port\n",3);
+	return -1;
+}
 
 //vecchio get request
 /*
@@ -146,51 +217,56 @@ void get_request(struct request rq){ //il nuovo get request assegna memoria dina
 	}
 	free(input);
 	*/
-
+	debug("\n",3);
+	debug("get_request()_reset_struct\n",3);
 	rq.argument[0] = '\0'; // resetta struttura request che contiene ancora vecchi valori;
 	rq.command[0] = '\0';
 
-	//prendo due parole da stdin poi svuoto stdin se fosse rimasto qualcosa 
-	fget_word(stdin, rq.command); 	
-	fget_word(stdin, rq.argument);
-	int c;
-	while ((c = getchar()) != '\n' && c != EOF);
+	//prendo due parole da stdin poi svuoto stdin se fosse rimasto qualcosa
+	debug("get_request()_get_word_1\n",3);	
+	int temp = fget_word(stdin, rq.command); 	//prima parola
 
-
-	if (strcmp(rq.command,"") == 0){
-		printf("No command detected\n");
-	}
-	else{
-		printf("Command: %s\n", rq.command);
+	if((temp != '\n') && (temp != '\0') && (temp != EOF)){
+		debug("get_request()_get_word_2\n",3);
+		temp = fget_word(stdin, rq.argument);	//seconda parola
 	}
 
-	if (strcmp(rq.argument,"") == 0){
-		printf("No argument detected\n");
+	if((temp != '\n') && (temp != '\0') && (temp != EOF)){
+		debug("get_request()_flush_exess_stdin\n",4);
+		while (((temp = getchar()) != '\n') && (temp != EOF))	//svuoto stdin
+			debug((char*)&temp,5);
 	}
-	else{
-		printf("Argument: %s\n", rq.argument);
-	}
+
+	printf("Command: %s\n", rq.command);
+	printf("Argument: %s\n", rq.argument);
+	
 }
 
 int fget_word(FILE* fd, char* str){
 	int byte;
 	int SIZE = 2;
 
+	debug("fget_word()_remove_spaces\n",4);
 	while(((byte = fgetc(fd)) == ' ') || (byte == '\n')){	//remove leading white spaces
 		if (byte < 0){
 			printf("ERROR while reading input: %s",strerror(errno));
 			exit(EXIT_FAILURE);
 		}
 	}
-
-	ungetc(byte, stdin);		//rimette nello stream il primo non_white character
-
-	while ( ((byte = fgetc(fd)) != '\n') || (byte != ' ') || (byte != EOF) ){
+	
+	debug("fget_word()_ungetc()\n",4);
+	ungetc(byte, fd);		//rimette nello stream il primo non_white character
+	
+	debug("fget_word()_get_letters\n",4);
+	while ( ((byte = fgetc(fd)) != '\n') && (byte != ' ') && (byte != EOF) ){
+		debug((char*)&byte,5);
+		debug("\n",5);
 		if (byte < 0){
 			printf("ERROR while reading input: %s",strerror(errno));
 			exit(EXIT_FAILURE);
 		}
-		str = (char *)realloc(str, SIZE); 
+		
+		str = (char *)realloc(str, SIZE * sizeof(char)); 
 		SIZE++;
 		strncat(str, (char *)&byte, 1);
 	}
@@ -198,22 +274,23 @@ int fget_word(FILE* fd, char* str){
 }
 
 void manage_request(int sd, struct request rq){
-
-	if(!strcmp(rq.command,"help")){
+	debug("manage_request()",3);	
+	if(strcmp(rq.command,"help") == 0){
 		help();
 	}	
-	else if(!strcmp(rq.command,"add")){
+	else if(strcmp(rq.command,"add") == 0){
 		add(sd, rq.argument);
 	}
-	else if(!strcmp(rq.command,"compress")){
+	else if(strcmp(rq.command,"compress") == 0){
 		compress(sd, rq.argument);
 	}
-	else if(strcmp(rq.command,"quit")){
+	else if(strcmp(rq.command,"quit") != 0){
 		printf("ERROR: unknown command\n");
 	}
 }
 
 void help(){
+	debug("help()",4);
 	const char* string =
 	    "Comandi disponibili\n"
 	    "\thelp:\n"
@@ -228,8 +305,8 @@ void help(){
 }
 
 void add(int sd, char* argument){
-	printf("add command\n");					//debug se printa sei nella funzione
-	printf("file path: '%s'\n",argument);
+	debug("add()_argument:",4);					//debug se printa sei nella funzione
+	debug(argument,4);
 	
 	for(int i = 0; argument[i] != '\0'; i++){
 		if((argument[i] < 'A' || argument[i] > 'Z') && (argument[i] < 'a' || argument[i] > 'z') && (argument[i] < '0' || argument[i] > '9') && argument[i] != '.'){
@@ -285,9 +362,8 @@ printf("File %s sent\n", argument);
 }
 
 void compress(int sd, char* argument){
-
-	printf("compress command\n");				//debug se printa sei nella funzione
-	printf("compress method: '%s'\n",argument);
+	debug("compress()_argument:\n",4);				//debug se printa sei nella funzione
+	debug(argument,4);
 	ssize_t snd_bytes;
 
 
@@ -304,11 +380,11 @@ void compress(int sd, char* argument){
 }
 
 void quit(int sd, struct request rq) {
-	printf("quit command\n");					//debug se printa sei nella funzione
+	debug("quit()",4);					//debug se printa sei nella funzione
 	char *str = "q";
 	int snd_bytes;
 
-	if ((snd_bytes = send(sd, &str, sizeof(str), 0)) < 0){
+	if ((snd_bytes = send(sd, &str, sizeof(str), 0)) < 0){	//invio quit al server
 		fprintf(stderr, "Impossibile inviare dati su socket: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
