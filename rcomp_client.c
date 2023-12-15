@@ -26,6 +26,9 @@ int setup (int argc, char* argv[]);
 void get_request(struct request rq);                    
 void manage_request(int sd, struct request rq);
 
+//funzioni accessorie
+int fget_word(FILE* fd, char* str);
+
 //funzioni che client deve eseguire
 void help();
 void add(int sd, char* argument);
@@ -125,10 +128,10 @@ struct request get_request_vecchio(){
 }
 */
 
+
 void get_request(struct request rq){ //il nuovo get request assegna memoria dinamicamente
 
 	printf("rcomp> ");
-
 	//modo carino di leggere tutto stdin dinamicamente ma che non serve nel nostro caso
 	/*
 	int STEP = 0;
@@ -146,48 +149,53 @@ void get_request(struct request rq){ //il nuovo get request assegna memoria dina
 
 	rq.argument[0] = '\0'; // resetta struttura request che contiene ancora vecchi valori;
 	rq.command[0] = '\0';
+
+	//prendo due parole da stdin poi svuoto stdin se fosse rimasto qualcosa 
+	fget_word(stdin, rq.command); 	
+	fget_word(stdin, rq.argument);
 	int c;
-	int STEP = 2;
-	while ((c = getchar()) != '\n'){
-		if (c < 0){
-			printf("ERROR while reading input: %s",strerror(errno));
-			exit(EXIT_FAILURE);
-		}
-		rq.command = (char *)realloc(rq.command, STEP++);
-		if (c == ' '){
-			break;
-		}
-		strcat(rq.command, (char *)&c);
-	}
+	while ((c = getchar()) != '\n' && c != EOF);
+
+
 	if (strcmp(rq.command,"") == 0){
-		printf("no command detected\n");
+		printf("No command detected\n");
 	}
 	else{
-		printf("command: %s\n", rq.command);
+		printf("Command: %s\n", rq.command);
 	}
 
-	STEP = 2;
-	if (c != '\n'){
-		while ((c = getchar()) != '\n'){
-			if (c < 0){
-				printf("ERROR while reading input: %s",strerror(errno));
-				exit(EXIT_FAILURE);
-			}
-			rq.command = (char *)realloc(rq.argument, STEP++);
-			if (c == ' '){
-				break;
-			}
-		strcat(rq.command, (char *)&c);
-		}
-	}
 	if (strcmp(rq.argument,"") == 0){
 		printf("No argument detected\n");
 	}
 	else{
-		printf("argument: %s\n", rq.argument);
+		printf("Argument: %s\n", rq.argument);
 	}
 }
 
+int fget_word(FILE* fd, char* str){
+	int byte;
+	int SIZE = 2;
+
+	while(((byte = fgetc(fd)) == ' ') || (byte == '\n')){	//remove leading white spaces
+		if (byte < 0){
+			printf("ERROR while reading input: %s",strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	ungetc(c, stdin);		//rimette nello stream il primo non_white character
+
+	while ( ((byte = fgetc(fd)) != '\n') || (byte != ' ') || (byte != EOF) ){
+		if (byte < 0){
+			printf("ERROR while reading input: %s",strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+		str = (char *)realloc(str, SIZE); 
+		SIZE++;
+		strncat(str, (char *)&c, 1);
+	}
+	return c;
+}
 
 void manage_request(int sd, struct request rq){
 
