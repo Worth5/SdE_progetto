@@ -24,7 +24,7 @@ struct request{
 //funzioni nel main
 int setup (int argc, char* argv[]);
 void get_request(struct request rq);                    
-void manage_request(int sd, q);
+void manage_request(int sd, struct request rq);
 
 //funzioni che client deve eseguire
 void help();
