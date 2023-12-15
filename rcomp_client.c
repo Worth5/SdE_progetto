@@ -24,13 +24,13 @@ struct request{
 //funzioni nel main
 int setup (int argc, char* argv[]);
 void get_request(struct request rq);                    
-void manage_request(int sd, struct request rq);
+void manage_request(int sd, q);
 
 //funzioni che client deve eseguire
 void help();
 void add(int sd, char* argument);
 void compress(int sd, char* argument);
-void quit(int sd);
+void quit(int sd, struct request rq);
 
 	//---------- MAIN ---------- //
 int main(int argc, char *argv[]){
@@ -125,7 +125,7 @@ struct request get_request_vecchio(){
 }
 */
 
-struct request get_request(struct request rq){ //il nuovo get request assegna memoria dinamicamente
+void get_request(struct request rq){ //il nuovo get request assegna memoria dinamicamente
 
 	printf("rcomp> ");
 
@@ -171,7 +171,7 @@ struct request get_request(struct request rq){ //il nuovo get request assegna me
 		while ((c = getchar()) != '\n'){
 			if (c < 0){
 				printf("ERROR while reading input: %s",strerror(errno));
-				exit(EXIT_FAILURE):
+				exit(EXIT_FAILURE);
 			}
 			rq.command = (char *)realloc(rq.argument, STEP++);
 			if (c == ' '){
