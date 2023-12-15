@@ -183,7 +183,7 @@ int fget_word(FILE* fd, char* str){
 		}
 	}
 
-	ungetc(c, stdin);		//rimette nello stream il primo non_white character
+	ungetc(byte, stdin);		//rimette nello stream il primo non_white character
 
 	while ( ((byte = fgetc(fd)) != '\n') || (byte != ' ') || (byte != EOF) ){
 		if (byte < 0){
