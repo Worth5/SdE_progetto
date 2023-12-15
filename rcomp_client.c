@@ -186,8 +186,6 @@ void get_request(struct request rq){ //il nuovo get request assegna memoria dina
 	else{
 		printf("argument: %s\n", rq.argument);
 	}
-
-	return rq;
 }
 
 
