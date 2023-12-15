@@ -194,7 +194,7 @@ int fget_word(FILE* fd, char* str){
 		SIZE++;
 		strncat(str, (char *)&c, 1);
 	}
-	return c;
+	return byte;
 }
 
 void manage_request(int sd, struct request rq){
