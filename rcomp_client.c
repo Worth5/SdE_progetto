@@ -192,7 +192,7 @@ int fget_word(FILE* fd, char* str){
 		}
 		str = (char *)realloc(str, SIZE); 
 		SIZE++;
-		strncat(str, (char *)&c, 1);
+		strncat(str, (char *)&byte, 1);
 	}
 	return byte;
 }
