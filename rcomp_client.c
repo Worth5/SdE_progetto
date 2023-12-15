@@ -10,37 +10,44 @@
 #include <arpa/inet.h>			//for uint16_t htons(uint16_t data);
 #include <sys/stat.h>			//for stat() file size
 
+// da quel che ho capito non si possono passare argomenti a signal handler quindi gli facciamo cambiare una variabile gloale che usimo nel main loop
+// quando end_signal==1 si esce da main loop e si esegue exit
+int end_signal = 0;
+void sigint_handler(int signo) { end_signal = 1; } 
 
-struct request{					//idea creo una struttura che contiene comando e argomento
+//creo una struttura che contiene comando e argomento
+struct request{					
 	char *command;			
 	char *argument;
 };
 
-void sigint_handler(int signo){quit()};
+//funzioni nel main
 int setup (int argc, char* argv[]);
-struct request get_request();                    
+void get_request(struct request rq);                    
 void manage_request(int sd, struct request rq);
-uint8_t check_valid(char* command);
+
+//funzioni che client deve eseguire
 void help();
 void add(int sd, char* argument);
 void compress(int sd, char* argument);
-void quit();
+void quit(int sd);
 
-int main(int argc, char *argv[])
-{
-	if(signal(SIGINT, sigint_handler) == SIG_ERR){													//Registrazione handler per il segnale SIGINT
+	//---------- MAIN ---------- //
+int main(int argc, char *argv[]){
+
+	if(signal(SIGINT, sigint_handler) == SIG_ERR){			//Registrazione handler per il segnale SIGINT
 		fprintf(stderr, "ERROR: Handler SIGINT registration failed (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	
 	int sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
-	struct request rq = {0};
+	struct request rq = {.command="", .argument=""};
 
-	while (strcmp(rq.command, "quit") != 0){
-		rq = get_request(); // creo struttura request
-		manage_request(sd, rq);
+	while ((strcmp(rq.command, "quit") != 0) || end_signal){
+		get_request(rq); 		// alloco memoria necessaria a contenere stringa richiesta si potrebbe fare più efficente salvando nella struttura 2 variabili LEN1 e LEN2 che salvano lo spazio già allocato per comando e argomnto
+		manage_request(sd, rq);	// controllo contenuto request e chiamo la funzione principale corrispondente
 	}
-	quit(sd);//manda mess a server chiude socket e esegue exit(EXIT_SUCCESS)
+	quit(sd, rq);				//manda mess a server chiude socket libera memoria allocata e esegue exit(EXIT_SUCCESS)
 }
 
 int setup(int argc, char* argv[]){
@@ -97,7 +104,6 @@ int setup(int argc, char* argv[]){
 	return sd;							//ritorno socket descriptor
 }    
 
-
 //vecchio get request
 /*
 struct request get_request_vecchio(){	
@@ -119,10 +125,9 @@ struct request get_request_vecchio(){
 }
 */
 
-struct request get_request(){ //il nuovo get request assegna memoria dinamicamente
+struct request get_request(struct request rq){ //il nuovo get request assegna memoria dinamicamente
 
 	printf("rcomp> ");
-	struct request rq = {.command=NULL, .argument=NULL}; // struttura inizializzata a zero
 
 	//modo carino di leggere tutto stdin dinamicamente ma che non serve nel nostro caso
 	/*
@@ -138,20 +143,23 @@ struct request get_request(){ //il nuovo get request assegna memoria dinamicamen
 	}
 	free(input);
 	*/
+
+	rq.argument[0] = '\0'; // resetta struttura request che contiene ancora vecchi valori;
+	rq.command[0] = '\0';
 	int c;
 	int STEP = 2;
 	while ((c = getchar()) != '\n'){
 		if (c < 0){
 			printf("ERROR while reading input: %s",strerror(errno));
-			exit(EXIT_FAILURE):
+			exit(EXIT_FAILURE);
 		}
 		rq.command = (char *)realloc(rq.command, STEP++);
-		if (c == " "){
+		if (c == ' '){
 			break;
 		}
-		strcat(rq.command, &(char)c);
+		strcat(rq.command, (char *)&c);
 	}
-	if (rq.command == NULL){
+	if (strcmp(rq.command,"") == 0){
 		printf("no command detected\n");
 	}
 	else{
@@ -160,18 +168,19 @@ struct request get_request(){ //il nuovo get request assegna memoria dinamicamen
 
 	STEP = 2;
 	if (c != '\n'){
-		while ((c = getchar()) != '\n' && c != EOF){
+		while ((c = getchar()) != '\n'){
 			if (c < 0){
 				printf("ERROR while reading input: %s",strerror(errno));
 				exit(EXIT_FAILURE):
 			}
 			rq.command = (char *)realloc(rq.argument, STEP++);
-			if (c == " "){
+			if (c == ' '){
 				break;
 			}
-		strcat(rq.command, &c);
+		strcat(rq.command, (char *)&c);
+		}
 	}
-	if (rq.argument == NULL){
+	if (strcmp(rq.argument,"") == 0){
 		printf("No argument detected\n");
 	}
 	else{
@@ -194,7 +203,7 @@ void manage_request(int sd, struct request rq){
 		compress(sd, rq.argument);
 	}
 	else if(strcmp(rq.command,"quit")){
-		printf("ERROR: unknown command\n";)
+		printf("ERROR: unknown command\n");
 	}
 }
 
@@ -278,7 +287,7 @@ void compress(int sd, char* argument){
 
 	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0){
 		if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0){ // Dico al server quale algoritmo usare
-			printf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
+			fprintf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
 		printf("Messaggio inviato al server: %s\n", argument);
@@ -288,15 +297,18 @@ void compress(int sd, char* argument){
 	}
 }
 
-void quit(int sd) {
+void quit(int sd, struct request rq) {
 	printf("quit command\n");					//debug se printa sei nella funzione
-	char *c = "q";
+	char *str = "q";
+	int snd_bytes;
 
-	if ((snd_bytes = send(conn_sd, &c, sizeof(c), 0)) < 0){
+	if ((snd_bytes = send(sd, &str, sizeof(str), 0)) < 0){
 		fprintf(stderr, "Impossibile inviare dati su socket: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
+	free(rq.command);
+	free(rq.argument);
 	close(sd);
 	exit(EXIT_SUCCESS);
 }
