@@ -26,7 +26,7 @@ int setup (int argc, char* argv[]);
 void get_request(struct request rq);                    
 void manage_request(int sd, struct request rq);
 
-//funzioni necessarie
+//funzioni subordinate
 int fget_word(FILE* fd, char* str);
 int parse_argv_for_ip(int argc, char* argv[]);
 int parse_argv_for_port(int argc, char* argv[]);
@@ -41,13 +41,13 @@ void debug(char *str, int level){	//stampa in verde messaggio debug
 	#endif
 }
 
-//funzioni che client deve eseguire
+//funzioni client richieste
 void help();
 void add(int sd, char* argument);
 void compress(int sd, char* argument);
 void quit(int sd, struct request rq);
 
-
+//signal handler
 void sigint_handler(int signo) {
 	int fd[2];
 	pipe(fd);
@@ -68,7 +68,6 @@ int main(int argc, char *argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-	
 	int sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
 	struct request rq = {.command = malloc(1), .argument = malloc(1)};//crea struttura request che viene usata ogni ciclo e eliminata in quit
 	
