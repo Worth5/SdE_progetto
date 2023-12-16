@@ -18,6 +18,7 @@
 struct request{					
 	char *command;			
 	char *argument;
+
 };
 
 //funzioni nel main
@@ -46,11 +47,17 @@ void add(int sd, char* argument);
 void compress(int sd, char* argument);
 void quit(int sd, struct request rq);
 
-// da quel che ho capito non si possono passare variabili con visibilità main
-// quando end_signal==1 si esce da main loop e si esegue exit
-int end_signal = 0;
-void sigint_handler(int signo) { debug("sigint",1); end_signal = 1; } 
 
+void sigint_handler(int signo) {
+	int fd[2];
+	pipe(fd);
+	close(STDIN_FILENO);
+	dup2(fd[0],STDIN_FILENO);
+
+	dprintf(fd[1],"quit\n");
+	debug("sigint\n",1);
+
+} 
 
 		//--------------- MAIN --------------- //
 int main(int argc, char *argv[]){
@@ -65,11 +72,12 @@ int main(int argc, char *argv[]){
 	int sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
 	struct request rq = {.command = malloc(1), .argument = malloc(1)};//crea struttura request che viene usata ogni ciclo e eliminata in quit
 	
-	while ((strcmp(rq.command, "quit") != 0) || end_signal){
+	do{
 		debug("main()_while\n",2);
 		get_request(rq); 		// alloco memoria necessaria a contenere stringa richiesta si potrebbe fare più efficente salvando nella struttura 2 variabili LEN1 e LEN2 che salvano lo spazio già allocato per comando e argomnto
 		manage_request(sd, rq);	// controllo contenuto request e chiamo la funzione principale corrispondente
-	}
+	}while (strcmp(rq.command, "quit") != 0);
+
 	debug("main()_quit\n",1);
 	quit(sd, rq);				//manda mess a server chiude socket libera memoria allocata e esegue exit(EXIT_SUCCESS)
 }
@@ -153,7 +161,6 @@ int parse_argv_for_ip(int argc, char* argv[]){
 	debug("no arg has valid ip\n",3);
 	return -1;
 }
-
 
 int parse_argv_for_port(int argc, char* argv[]){
 
@@ -248,12 +255,13 @@ int fget_word(FILE* fd, char* str){
 
 	debug("fget_word()_remove_spaces\n",4);
 	while(((byte = fgetc(fd)) == ' ') || (byte == '\n')){	//remove leading white spaces
-		if (byte < 0){
-			printf("ERROR while reading input: %s",strerror(errno));
-			exit(EXIT_FAILURE);
-		}
+		
 	}
 	
+	if (byte < 0){
+			printf("ERROR while reading input: %s",strerror(errno));
+			//exit(EXIT_FAILURE);
+		}
 	debug("fget_word()_ungetc()\n",4);
 	ungetc(byte, fd);		//rimette nello stream il primo non_white character
 	
@@ -274,7 +282,7 @@ int fget_word(FILE* fd, char* str){
 }
 
 void manage_request(int sd, struct request rq){
-	debug("manage_request()",3);	
+	debug("manage_request()\n",3);	
 	if(strcmp(rq.command,"help") == 0){
 		help();
 	}	
@@ -314,6 +322,7 @@ void add(int sd, char* argument){
 			return;
 		}
 	}
+
 
 	int fd;
 
@@ -367,6 +376,9 @@ void compress(int sd, char* argument){
 	ssize_t snd_bytes;
 
 
+	//strcmp(argument, "")//controllo vuoto
+	//strcpy(z)
+
 	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0){
 		if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0){ // Dico al server quale algoritmo usare
 			fprintf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
@@ -377,10 +389,15 @@ void compress(int sd, char* argument){
 	else{
 		printf("Errore: Algoritmo non valido. Utilizzare 'z' per gzip o 'j' per bzip2.\n");
 	}
+
+
+	//ricevi dal server ok no
+
+	//se ok ricevi file e lo salvi
 }
 
 void quit(int sd, struct request rq) {
-	debug("quit()",4);					//debug se printa sei nella funzione
+	debug("quit()\n",4);					//debug se printa sei nella funzione
 	char *str = "q";
 	int snd_bytes;
 
