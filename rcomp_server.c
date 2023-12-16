@@ -10,15 +10,23 @@
 #include <arpa/inet.h>	//for inet_pton() INADDR_ANY credo...
 #include <sys/wait.h>	//boh ahah non ricordo perche l'ho inserito..... 🥲
 
+
+//funzioni main
 int setup(int argc, char* argv[]);
-int connect_client(int argc, char* argv[]);
+int connect_client(int sd);
+
+//funzioni server richieste
 void add(int conn_sd);
 void compress(int conn_sd);
 
+//funzioni subordinate
+int parse_argv_for_port(int argc, char* argv[]);
+
+
+
 int main(int argc, char* argv[]){
 
-	struct request rq = struct request {"","",0};
-	int sd = setup(int argc, char* argv[]);	//crea socket imposta sockopt esegue bind e listen 
+	int sd = setup(argc, argv);	//crea socket imposta sockopt esegue bind e listen 
 
 	while(1){
 		int conn_sd = connect_client(sd); // esegue connet e restituisce connection socket
@@ -26,44 +34,45 @@ int main(int argc, char* argv[]){
 		char command[10] = "0";
 
 		while (valid_input && strcmp(command, "q")){ // finche input è valido e diverso da "q"
-			ssize_t rcvd_bytes;
 
-			if ((rcvd_bytes = recv(conn_sd, &command, sizeof(command), 0)) < 0){
+			ssize_t rcvd_bytes= recv(conn_sd, &command, 1, 0);
+
+			if (rcvd_bytes < 0){
 				fprintf(stderr, "Impossibile ricevere dati su socket: %s\n", strerror(errno));
 				exit(EXIT_FAILURE);
 			}
-			else if(!strcmp(command,"add")){
-				add(conn_sd);
+			else if(!strcmp(command,"a")){
+				add(conn_sd);//riceve file e lo salva
 			}
-			else if((!strcmp(command,"compj")) || (!strcmp(command,"compz"))){
-				compress(conn_sd);
+			else if((!strcmp(command,"j")) || (!strcmp(command,"z"))){
+				compress(conn_sd);//fork al comando tar con exec poi manda il file al client
 			}
 			else if(!strcmp(command,"q")){
-				printf("Connection interrupted by client\n")
+				printf("Connection interrupted by client\n");
 			}
 			else{
 				valid_input = 0;
 				printf("Invalid command detected\n");
 			}
 		}
-		printf("Closing connection\n")
+		printf("Closing connection\n");
 		close(conn_sd);
 	}
-
-	
+	close(sd);
     return EXIT_SUCCESS;
 }
 
-int setup(int argc, char *argv[]){ // create socket + socket opt + bind() return socket
-	// char* addr_str = "127.0.0.1";
-	int port_no = 1234;
 
-	if (argc == 2){
-		int temp = strtol(argv[1]);
-		if ((temp <= 65535) && (temp >= 0))
-			port_no = argv[1];
-		else
-			printf("Set default port = %s\n", port_no);
+int setup(int argc, char *argv[]){ // create socket + socket opt + bind() return socket
+
+	int port_no = 1234;
+	int port_pos = parse_argv_for_port(argc, argv);
+	if (port_pos > 0){
+		port_no = atoi(argv[port_pos]);
+		printf("port:%d\n", port_no);
+	}
+	else{
+		printf("no valid port, using default:%d\n", port_no);
 	}
 
 	int sd;
@@ -71,7 +80,8 @@ int setup(int argc, char *argv[]){ // create socket + socket opt + bind() return
 		fprintf(stderr, "Impossibile creare il socket: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-
+	
+	char *addr_str="127.0.0.1";
 	in_addr_t address;
 	if (inet_pton(AF_INET, addr_str, (void *)&address) < 0){ // conversione dell'indirizzo in formato numerico
 		fprintf(stderr, "Impossibile convertire l'indirizzo: %s\n", strerror(errno));
@@ -102,6 +112,31 @@ int setup(int argc, char *argv[]){ // create socket + socket opt + bind() return
 	return sd;
 }
 
+
+int parse_argv_for_port(int argc, char* argv[]){
+
+	//debug("parse_argv_for_port()\n",3);
+	for(int j = 1; j < argc; j++){
+		//debug("arg\n",4);
+		int check=1;
+		for(int i = 0; argv[j][i]!='\0'; i++){
+			char c[3]={i+'0','\n','\0'};
+			//debug(c,5);
+			if(argv[j][i]<'0' || argv[j][i]>'9'){
+				check=0;
+			}
+		}
+		if(check){
+			//debug("valid port found\n",3);
+			return j;
+		}
+		
+	}
+	//debug("no arg has valid port\n",3);
+	return -1;
+}
+
+
 int connect_client(int sd){
 	
 	// --- ATTESA DI CONNESSIONE --- //
@@ -123,45 +158,13 @@ int connect_client(int sd){
 	    exit(EXIT_FAILURE);
 	}
 
-	printf("Connesso al client %s:%d\n", addr_str, ntohs(client_addr.sin_port));
+	printf("Connesso al client %s:%d\n", client_addr_str, ntohs(client_addr.sin_port));
 	return conn_sd;
 }
 
-void get_request(conn_sd, struct request &rq){
-	ssize_t rcvd_bytes, snd_bytes;
-	char c;
-	rcvd_bytes = recv(conn_sd, &c, sizeof(char), 0);
-	printf("%c",c);
-	if (rq.valid = check_valid(c)){
-		if(c=='a'){
-			add();
-		}else if(( c=='j') || (c =='z')){
-			compress();
-		}else if(c=='q'){
-			quit();
-		}else 
-			
-	}
+void add(int conn_sd){
+	printf("add");
 }
-
-
-
-
-
-
-
-
-
-
-int process_client(int conn_sd)//non usata
-{
-    ssize_t rcvd_bytes, snd_bytes;
-    while(1)
-	{
-		// --- RICEZIONE LUNGHEZZA DELLA STRINGA --- //
-		
-	}
-	
-	// --- CHIUSURA SOCKET CONNESSO --- //
-    close(conn_sd);
+void compress(int conn_sd){
+	printf("compress");
 }
