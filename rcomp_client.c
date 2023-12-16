@@ -11,7 +11,7 @@
 #include <sys/stat.h>			//for stat() file size
 
 //abilita printf di debug all'interno dell funzione debug()
-#define DEBUG_LEVEL 10 //0  disabilita tutte printf di debug, più è alto il valore maggiori saranno le printf...
+#define DEBUG_LEVEL 0 //0  disabilita tutte printf di debug, più è alto il valore maggiori saranno le printf...
 
 
 //creo una struttura che contiene comando e argomento
