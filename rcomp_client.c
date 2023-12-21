@@ -374,26 +374,28 @@ void compress(int sd, char* argument){
 	debug(argument,4);
 	ssize_t snd_bytes;
 
-
-	//strcmp(argument, "")//controllo vuoto
-	//strcpy(z)
-
-	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0){
-		if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0){ // Dico al server quale algoritmo usare
+	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0){ 
+           if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0){ // Dico al server quale algoritmo usare
+			fprintf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+	   }
+		printf("Messaggio inviato al server: %s\n", argument);
+	}else if (strcmp(argument, "") == 0){
+		strcpy(argument, "z");
+		if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0) {
 			fprintf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
-		printf("Messaggio inviato al server: %s\n", argument);
-	}
-	else{
-		printf("Errore: Algoritmo non valido. Utilizzare 'z' per gzip o 'j' per bzip2.\n");
+		printf("Messaggio inviato al server: %s (Argomento vuoto, impostato a 'z')\n", argument);
+	}else{
+		printf("Errore:Argomento non valido, utilizzare 'z' per gzip o 'j' per bzip2.\n");
 	}
 
 
 	//ricevi dal server ok no
 
 	//se ok ricevi file e lo salvi
-}
+ 
 
 void quit(int sd, struct request rq) {
 	debug("quit()\n",4);					//debug se printa sei nella funzione
