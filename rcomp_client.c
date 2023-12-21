@@ -372,7 +372,7 @@ printf("File %s sent\n", argument);
 void compress(int sd, char* argument){
 	debug("compress()_argument:\n",4);				//debug se printa sei nella funzione
 	debug(argument,4);
-	ssize_t snd_bytes;
+	ssize_t rcvd_bytes, snd_bytes;
 
 	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0){ 
            if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0){ // Dico al server quale algoritmo usare
@@ -391,8 +391,17 @@ void compress(int sd, char* argument){
 		printf("Errore:Argomento non valido, utilizzare 'z' per gzip o 'j' per bzip2.\n");
 	}
 
-
-	//ricevi dal server ok no
+        // --- RICEZIONE RISPOSTA --- //
+        char resp[3];
+        rcvd_bytes = recv(sd, &resp, 2, 0);
+        if (rcvd_bytes < 0)
+        {
+            fprintf(stderr, "ERRORE: aggiungere almeno un file prima di effettuare la compressione: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        resp[rcvd_bytes] = '\0';
+        
+        printf("Ricevuta risposta '%s'\n", resp);
 
 	//se ok ricevi file e lo salvi
  
