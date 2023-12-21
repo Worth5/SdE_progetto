@@ -400,12 +400,10 @@ void compress(int sd, char* argument){
             exit(EXIT_FAILURE);
         }
         resp[rcvd_bytes] = '\0';
-        
-        printf("Ricevuta risposta '%s'\n", resp);
+        //se ok ricevi file e lo salvi
+        //printf("Ricevuta risposta '%s'\n", resp);
 
-	//se ok ricevi file e lo salvi
- 
-
+	
 void quit(int sd, struct request rq) {
 	debug("quit()\n",4);					//debug se printa sei nella funzione
 	char *str = "q";
