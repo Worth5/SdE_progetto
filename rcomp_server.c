@@ -163,8 +163,162 @@ int connect_client(int sd){
 }
 
 void add(int conn_sd){
-	printf("add");
+	printf("Add request received\n");
+
+	//creo nome dir univoco aggiungendo pid
+	char *dir_name = srtcat("rcomp_server.temp.",itoa(getpid()));
+	
+
+	//mkdir se dir non esiste
+	struct stat dir_info;
+	mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
+	if(stat(dir_name, &dirInfo)==-1){
+		if(mkdir(dir_name, mode)<0){
+			fprintf(stderr, "Error creating directory: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+		
+	}
+	//sposto working directory in dir_name
+	chdir(dir_name);
+
+	//ricevi lunghezza nome del file
+	int file_name_len;
+    if (recv(conn_sd, &file_name_len, sizeof(int), 0) < 0) {
+        fprintf(stderr, "Error receiving size of file name: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    int file_name_len= ntohl(file_name_len);
+
+	//alloco spazio in memoria e ricevo stringa nome del file
+	char *filename = malloc(file_name_len);
+    if (recv(conn_sd, &filename, file_name_len, 0) < 0) {
+        fprintf(stderr, "Error receiving file name: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+	//check file gìà presente in questo caso non si fa niente e verrà sovrascritto
+	struct stat file_info;
+	if(stat(filename, &file_info) == 0){
+		Printf("File alreaddy exists, overwriting with new file\n");
+	}
+
+	//crea file all'interno della dir con nome ricevuto
+ 	int fd;
+	if((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0777)) < 0){
+		fprintf(stderr, "ERROR: cannot create file %s (%s)\n", filename, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	//ricevi grandezza file
+	int file_size;
+    ssize_t rcvd_bytes = recv(conn_sd, &file_size, sizeof(int), 0);
+    if (rcvd_bytes < 0) {
+        fprintf(stderr, "Error receiving file size: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    int file_size = ntohl(file_size);
+	
+	//ciclo recv from socket, write on file
+	const int BUFFSIZE = 4096;
+    char buff[BUFFSIZE];
+    int remaining_bytes = file_size;
+
+    while (remaining_bytes > 0) {
+         
+        if ((rcvd_bytes = recv(conn_sd, buff, sizeof(buff), 0)) < 0) {
+            fprintf(stderr, "Error receiving file data: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        if (write(fd, buff, rcvd_bytes) < 0) {
+            fprintf(stderr, "Error writing to file: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        remaining_bytes -= rcvd_bytes;
+    }
+
+    printf("File received and saved as: %s\n", filename);
+
+    // Close the file descriptor
+    close(fd);
+	chdir("..");//gestione errore?
 }
-void compress(int conn_sd){
-	printf("compress");
+
+void compress(int conn_sd) {
+    printf("Compress request received\n");
+
+    char *dir_name = srtcat(itoa("rcomp_server.temp."), itoa(getpid()));
+    DIR *dir_to_compress;
+    struct dirent *dir_entity;
+    struct stat directory_stat;
+
+    // receive compression type from client and setup tar command
+    char arg[2];
+    char tar_command[30];
+    if ((rcvd_bytes = recv(conn_sd, arg, 2, 0)) < 0) {
+        fprintf(stderr, "Error receiving file data: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (strcomp(arg, "z") == 0) {
+        sprintf(tar_command, "tar czf - -C ./%s", dir_name);
+    } 
+	else {//assumo j
+        sprintf(tar_command, "tar cjf - -C ./%s", dir_name);
+    }
+
+    // controlo che la cartella esista
+    if (stat(dir_name, &dir_stat) == -1) {
+
+        if (errno == EFAULT) {//dir non esiste
+            char *str = "no";
+            if (send(conn_sd, str, strlen(str) + 1, 0) < 0) {
+                fprintf(stderr, "Error sending data: %s\n", strerror(errno));
+                exit(EXIT_FAILURE);
+            }
+			printf("No file ready for compression");
+			return;
+        }
+		else{//errore diverso
+			fprintf(stderr, "ERROR: cannot open dir %s (%s)\n", filename, strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+    } 
+
+	char *str = "ok";
+	if (send(conn_sd, str, strlen(str) + 1, 0) < 0) {
+		fprintf(stderr, "Error sending data: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+    //////////////////////////////////////////parte opo da rivedere.....
+	
+    // use popen to fork ancconnect chil process to pipe
+    FILE *tarStream = popen(tar_command, "r");
+    if (tarProcess == NULL) {
+        fprintf(stderr, "Error executing tar: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+	
+    char buff[4096];
+    size_t bytes;
+
+    // Read from the tar process and send the compressed data to the client
+    while ((bytesRead = fread(buff, 1, sizeof(buff), tarProcess)) > 0) {
+        ssize_t snd_bytes = send(conn_sd, buffer, bytesRead, 0);
+        if (snd_bytes < 0) {
+            fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // Close the tar process
+    int tarStatus = pclose(tarProcess);
+    if (tarStatus == -1) {
+        fprintf(stderr, "Error closing tar process: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+	
 }
