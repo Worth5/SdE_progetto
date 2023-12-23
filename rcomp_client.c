@@ -337,6 +337,15 @@ void add(int sd, char* argument){
 	}
 	off_t file_size = metadata.st_size;
 
+	/*
+	da aggiungere qui:
+	-invia "a" al server per comunicargli richiesta add
+	-invia la lunghezza del nome del file -> strlen("nomefile")+1
+	-invia la stringa che contiene il nome del file
+	*/
+	
+
+
 	//------------INVIO LUNGHEZZA----------------//
 
 	ssize_t snd_bytes;
@@ -352,8 +361,6 @@ void add(int sd, char* argument){
 	char buff[BUFFSIZE];
 	int n;
 
-	printf("Sending file %s to the current server...\n", argument);
-	
 	while((n = read(fd, buff, BUFFSIZE)) > 0){
 		if((snd_bytes = send(sd, buff, n, 0)) < 0){
 			fprintf(stderr, "ERROR: Impossible to send message (%s)\n", strerror(errno));
@@ -366,7 +373,7 @@ void add(int sd, char* argument){
 		exit(EXIT_FAILURE);
 	}	
 	
-printf("File %s sent\n", argument);
+	printf("File %s sent\n", argument);
 }
 
 void compress(int sd, char* argument){
@@ -382,7 +389,7 @@ void compress(int sd, char* argument){
 		printf("Messaggio inviato al server: %s\n", argument);
 	}else if (strcmp(argument, "") == 0){
 		strcpy(argument, "z");
-		if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0) {
+		if ((snd_bytes = send(sd, argument, strlen(argument) + 1, 0)) < 0) {
 			fprintf(stderr, "Impossibile inviare dati: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
@@ -403,13 +410,14 @@ void compress(int sd, char* argument){
         //se ok ricevi file e lo salvi
         //printf("Ricevuta risposta '%s'\n", resp);
 
-	
+}
+
 void quit(int sd, struct request rq) {
 	debug("quit()\n",4);					//debug se printa sei nella funzione
 	char *str = "q";
 	int snd_bytes;
 
-	if ((snd_bytes = send(sd, &str, sizeof(str), 0)) < 0){	//invio quit al server
+	if ((snd_bytes = send(sd, &str, strlen(str)+1, 0)) < 0){	//invio quit al server
 		fprintf(stderr, "Impossibile inviare dati su socket: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
