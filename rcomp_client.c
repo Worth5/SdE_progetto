@@ -337,18 +337,30 @@ void add(int sd, char* argument){
 	}
 	off_t file_size = metadata.st_size;
 
-	/*
-	da aggiungere qui:
-	-invia "a" al server per comunicargli richiesta add
-	-invia la lunghezza del nome del file -> strlen("nomefile")+1
-	-invia la stringa che contiene il nome del file
-	*/
-	
+	ssize_t snd_bytes;
 
+	//------------INVIO COMANDO AL SERVER---------------------//
+	cahr *str = "a";
+	if((snd_bytes = send(sd, str, strlen(str)+1, 0)) < 0){
+		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	//------------INVIO LUNGHEZZA "FILE NAME"-----------------//
+	size_t file_name = strlen(argument)+1;
+	if((snd_bytes = send(sd, (char *)&file_name, strlen(argument)+1, 0)) < 0){
+		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	
+	//-----------------INVIO "FILE NAME"----------------------//
+	if((snd_bytes = send(sd, argument, strlen(argument)+1, 0)) < 0){
+		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 	//------------INVIO LUNGHEZZA----------------//
 
-	ssize_t snd_bytes;
 	int file_size_n = htonl(file_size);
 	if((snd_bytes = send(sd, &file_size_n, sizeof(int), 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send size file (%s)\n", strerror(errno));
