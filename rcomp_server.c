@@ -8,8 +8,9 @@
 
 #include <sys/socket.h>	//for socket
 #include <arpa/inet.h>	//for inet_pton() INADDR_ANY credo...
-#include <sys/wait.h>	//boh ahah non ricordo perche l'ho inserito..... 🥲
 
+
+#define BUFFSIZE 4096
 
 //funzioni main
 int setup(int argc, char* argv[]);
@@ -249,30 +250,34 @@ void add(int conn_sd){
 void compress(int conn_sd) {
     printf("Compress request received\n");
 
-    char *dir_name = srtcat(itoa("rcomp_server.temp."), itoa(getpid()));
-    DIR *dir_to_compress;
-    struct dirent *dir_entity;
-    struct stat directory_stat;
+    char dir_name[50];
+    sprintf(dir_name, "rcomp_server.temp.%d", getpid());
 
-    // receive compression type from client and setup tar command
-    char arg[2];
-    char tar_command[30];
-    if ((rcvd_bytes = recv(conn_sd, arg, 2, 0)) < 0) {
-        fprintf(stderr, "Error receiving file data: %s\n", strerror(errno));
+    // receive compression type from client
+	char arg[2];
+    ssize_t rcvd_bytes;
+    if ((rcvd_bytes = recv(conn_sd, arg, sizeof(arg), 0)) < 0) {
+        fprintf(stderr, "Error receiving compression type: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    if (strcomp(arg, "z") == 0) {
-        sprintf(tar_command, "tar czf - -C ./%s", dir_name);
-    } 
-	else {//assumo j
-        sprintf(tar_command, "tar cjf - -C ./%s", dir_name);
+    
+	//setup tar command
+    char tar_command[100];
+    if (strcmp(arg, "z") == 0) {
+        snprintf(tar_command, sizeof(tar_command), "tar czf - -C ./%s .", dir_name);
+    } else if (strcmp(arg, "j") == 0) {
+        snprintf(tar_command, sizeof(tar_command), "tar cjf - -C ./%s .", dir_name);
+    } else {
+        fprintf(stderr, "Invalid compression type received: %s\n", arg);
+        exit(EXIT_FAILURE);
     }
 
-    // controlo che la cartella esista
+    // controllo che la cartella esista
+	struct stat directory_stat;
     if (stat(dir_name, &dir_stat) == -1) {
-
-        if (errno == EFAULT) {//dir non esiste
-            char *str = "no";
+		//dir non esiste -> nessun file da comprimere
+        if (errno == ENOENT) {//ENOENT
+	        char *str = "no";
             if (send(conn_sd, str, strlen(str) + 1, 0) < 0) {
                 fprintf(stderr, "Error sending data: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
@@ -280,45 +285,84 @@ void compress(int conn_sd) {
 			printf("No file ready for compression");
 			return;
         }
-		else{//errore diverso
+		else{//errore diverso in lettura dir
 			fprintf(stderr, "ERROR: cannot open dir %s (%s)\n", filename, strerror(errno));
 			exit(EXIT_FAILURE);
 		}
     } 
 
+	//ok to server comincia compressione
 	char *str = "ok";
 	if (send(conn_sd, str, strlen(str) + 1, 0) < 0) {
 		fprintf(stderr, "Error sending data: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
-    //////////////////////////////////////////parte opo da rivedere.....
-	
-    // use popen to fork ancconnect chil process to pipe
+    // use popen -> fork and connect stdout of child process to stream
     FILE *tarStream = popen(tar_command, "r");
-    if (tarProcess == NULL) {
+    if (tarStream == NULL) {
         fprintf(stderr, "Error executing tar: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 	
-    char buff[4096];
-    size_t bytes;
+	//ho bisogno di mandare lunghezza file
+	//copio archivio in file temporaneo e ne valuto la lunghezza
+	FILE *temp_file = tmpfile();
+	if (temp_file == NULL) {
+        fprintf(stderr, "Error creating temporary file: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
-    // Read from the tar process and send the compressed data to the client
-    while ((bytesRead = fread(buff, 1, sizeof(buff), tarProcess)) > 0) {
-        ssize_t snd_bytes = send(conn_sd, buffer, bytesRead, 0);
+	char buff[BUFFSIZE];
+    size_t bytes_read=1;
+    while (bytes_read > 0) {
+		if(bytes_read = fread(buffer, 1, sizeof(buffer), tarStream)<0){
+			fprintf(stderr, "Error reading child process: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);			
+		}
+        if(fwrite(buffer, 1, bytes_read, temp_file)<0){
+			fprintf(stderr, "Error wrinting temp file: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+		}
+    }
+
+
+    
+	//trovo filesize
+	fseek(temp_file, 0, SEEK_END);
+    long fileSize = ftell(tempFile);
+    fseek(temp_file, 0, SEEK_SET);
+
+	//comunico filesize
+	if (send(conn_sd, hton(fileSize), sizeof(fileSize), 0); < 0) {
+        fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    //legge stream temp_file e invia bytes a client
+    while ((bytes_read = fread(buff, 1, sizeof(buff), temp_file)) > 0) {
+        ssize_t snd_bytes = send(conn_sd, buff, bytes_read, 0);
         if (snd_bytes < 0) {
             fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
 
-    // Close the tar process
-    int tarStatus = pclose(tarProcess);
-    if (tarStatus == -1) {
+    // Close
+    if (fclose(temp_file) < 0) {
+        fprintf(stderr, "Error closing temporary file: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (pclose(tarStream) < 0) {
         fprintf(stderr, "Error closing tar process: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-
 	
 }
+
+
+
+
+
+
+
