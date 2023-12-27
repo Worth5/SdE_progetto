@@ -432,6 +432,11 @@ void compress(int sd, char* argument){
 	   }
 	   
 	   FILE *socket_stream =fdopen(sd, "r");
+		if ((fp_in = fopen(filename_in, "r")) == NULL){
+		   fprintf(stderr,"ERROR while opening %s\n", filename_in); 
+		   exit(EXIT_FAILURE);
+		}
+	   
            read_from_write_to(socket_stream, myfile):
 	}
 }
@@ -454,7 +459,7 @@ long read_from_write_to(FILE *s_input, FILE *s_output) {
 	      }
               // return filesize;
 	      return total_read;
-           }
+}
 void quit(int sd, struct request rq) {
 	debug("quit()\n",4);					//debug se printa sei nella funzione
 	char *str = "q";
