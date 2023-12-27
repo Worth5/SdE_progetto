@@ -347,7 +347,7 @@ void add(int sd, char* argument){
 	}
 
 	//------------INVIO LUNGHEZZA "FILE NAME"-----------------//
-	size_t file_name = strlen(argument)+1;
+	size_t file_name = htonl(strlen(argument)+1);
 	if((snd_bytes = send(sd, (void *)&file_name, sizeof(int), 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
