@@ -453,8 +453,28 @@ void compress(int sd, char* argument){
 	   int sd ;
 	   FILE *socket_stream =fdopen(sd, "r");
            read_from_write_to(socket_stream, myfile):
-
-
+	}
+}
+long read_from_write_to(FILE *s_input, FILE *s_output) {
+   	   
+   	      char buffer[BUFFSIZE];
+	      size_t bytes_read;
+	      long total_read = 0;
+              while ((bytes_read = fread(buffer, 1, sizeof(buffer), s_input)) > 0) {
+		   size_t bytes_written = fwrite(buffer, 1, bytes_read, s_output);
+		   total_read += bytes_written;
+		   if (bytes_written < bytes_read) {
+		      fprintf(stderr, "Error writing to temporary file: %s\n", strerror(errno));
+		      exit(EXIT_FAILURE);
+		   }
+	      }
+	      if (ferror(s_input)) {
+	      fprintf(stderr, "Error reading from archive: %s\n", strerror(errno));
+	      exit(EXIT_FAILURE);
+	      }
+              // return filesize;
+	      return total_read;
+           }
 void quit(int sd, struct request rq) {
 	debug("quit()\n",4);					//debug se printa sei nella funzione
 	char *str = "q";
