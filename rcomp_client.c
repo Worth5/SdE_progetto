@@ -419,47 +419,46 @@ void compress(int sd, char* argument){
             exit(EXIT_FAILURE);
         }
         resp[rcvd_bytes] = '\0';
-        
+        char *filename[30];
         if (strcmp(resp, "OK") == 0) {
            if (strcmp(argument, "z") == 0){
-              FILE *myfile = fopen("archiviocompresso.tar.gz", "wb");
-	   }else if (strcmp(argument, "j") == 0){
-	      FILE *myfile = fopen("archiviocompresso.tar.bz2", "wb");
+              strcpy(filname,"archiviocompresso.tar.gz");
+	   }else{
+	      strcpy(filneme,"archiviocompresso.tar.bz2");
 	   }
-	   if (myfile == NULL) {
+		
+		FILE *myfile = fopen(filename, "wb");
+	   	if (myfile == NULL) {
 	      fprintf(stderr, "Errore: Impossibile aprire il file per la ricezione\n");
               exit(EXIT_FAILURE);
 	   }
-	   
+
+		//ricevere grandezza file
+		//long file_size=
+			
 	   FILE *socket_stream =fdopen(socked_descriptor, "r");
-	   if ((fp_in = fopen(filename_in, "r")) == NULL){
+	   if ((soclet_stream = fopen(filename_in, "r")) == NULL){
               fprintf(stderr,"ERROR while opening %s\n", filename_in); 
               exit(EXIT_FAILURE);
 	   }
 		
-           read_from_write_to(socket_stream, myfile);
-	}
-}
-long read_from_write_to(FILE *s_input, FILE *s_output) {
-   	   
-   	      char buffer[BUFFSIZE];
+            char buffer[BUFFSIZE];
 	      size_t bytes_read;
 	      long total_read = 0;
-              while ((bytes_read = fread(buffer, 1, sizeof(buffer), s_input)) > 0) {
-		   size_t bytes_written = fwrite(buffer, 1, bytes_read, s_output);
-		   total_read += bytes_written;
-		   if (bytes_written < bytes_read) {
+              while ( total_read<file_size) {
+				rcvd_bytes = recv(conn_sd, &buffer, sizeof(buffer), 0);
+		   		size_t bytes_written = fwrite(buffer, 1, recvd_bytes, myfile);
+		   		total_read += bytes_written;
+		   if (bytes_written < recvd_bytes) {
 		      fprintf(stderr, "Error writing to temporary file: %s\n", strerror(errno));
 		      exit(EXIT_FAILURE);
 		   }
-	      }
-	      if (ferror(s_input)) {
-	      fprintf(stderr, "Error reading from archive: %s\n", strerror(errno));
-	      exit(EXIT_FAILURE);
-	      }
-              // return filesize;
-	      return total_read;
+	    } 
+		//chiudere il file con controllo errore
+		//printf 
+	}
 }
+
 void quit(int sd, struct request rq) {
 	debug("quit()\n",4);					//debug se printa sei nella funzione
 	char *str = "q";
