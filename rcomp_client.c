@@ -422,16 +422,15 @@ void compress(int sd, char* argument){
         
         if (strcmp(resp, "OK") == 0) {
            if (strcmp(argument, "z") == 0){
-              FILE *myfile = fopen("archiviocompresso.tar.gz", "w");
+              FILE *myfile = fopen("archiviocompresso.tar.gz", "wb");
 	   }else if (strcmp(argument, "j") == 0){
-	      FILE *myfile = fopen("archiviocompresso.tar.bz2", "w");
+	      FILE *myfile = fopen("archiviocompresso.tar.bz2", "wb");
 	   }
 	   if (myfile == NULL) {
 	      fprintf(stderr, "Errore: Impossibile aprire il file per la ricezione\n");
               exit(EXIT_FAILURE);
 	   }
 	   
-	   int sd ;
 	   FILE *socket_stream =fdopen(sd, "r");
            read_from_write_to(socket_stream, myfile):
 	}
