@@ -432,6 +432,10 @@ void compress(int sd, char* argument){
 	   }
 	   
 	   FILE *socket_stream =fdopen(socked_descriptor, "r");
+	   if ((fp_in = fopen(filename_in, "r")) == NULL){
+              fprintf(stderr,"ERROR while opening %s\n", filename_in); 
+              exit(EXIT_FAILURE);
+	   }
 		
            read_from_write_to(socket_stream, myfile);
 	}
