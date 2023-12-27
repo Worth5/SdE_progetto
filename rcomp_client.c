@@ -419,7 +419,7 @@ void compress(int sd, char* argument){
             exit(EXIT_FAILURE);
         }
         resp[rcvd_bytes] = '\0';
-
+        
         if (strcmp(resp, "OK") == 0) {
            if (strcmp(argument, "z") == 0){
               FILE *myfile = fopen("archiviocompresso.tar.gz", "w");
@@ -429,17 +429,31 @@ void compress(int sd, char* argument){
 	   if (myfile == NULL) {
 	      fprintf(stderr, "Errore: Impossibile aprire il file per la ricezione\n");
               exit(EXIT_FAILURE);
-	 
-		    
-	    
-        if (received_file == NULL) {
-            fprintf(stderr, "Errore: Impossibile aprire il file per la ricezione\n");
-            exit(EXIT_FAILURE);
-        }
-	
-}
+	   }
+	   long read_from_write_to(FILE *s_input, FILE *s_output) {
+   	   
+   	      char buffer[BUFFSIZE];
+	      size_t bytes_read;
+	      long total_read = 0;
+              while ((bytes_read = fread(buffer, 1, sizeof(buffer), s_input)) > 0) {
+		   size_t bytes_written = fwrite(buffer, 1, bytes_read, s_output);
+		   total_read += bytes_written;
+		   if (bytes_written < bytes_read) {
+		      fprintf(stderr, "Error writing to temporary file: %s\n", strerror(errno));
+		      exit(EXIT_FAILURE);
+		   }
+	      }
+	      if (ferror(s_input)) {
+	      fprintf(stderr, "Error reading from archive: %s\n", strerror(errno));
+	      exit(EXIT_FAILURE);
+	      }
+              // return filesize;
+	      return total_read;
+           }
+	   int sd ;
+	   FILE *socket_stream =fdopen(sd, "r");
+           read_from_write_to(socket_stream, myfile):
 
-}
 
 void quit(int sd, struct request rq) {
 	debug("quit()\n",4);					//debug se printa sei nella funzione
