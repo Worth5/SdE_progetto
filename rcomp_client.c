@@ -419,8 +419,25 @@ void compress(int sd, char* argument){
             exit(EXIT_FAILURE);
         }
         resp[rcvd_bytes] = '\0';
-        //se ok ricevi file e lo salvi
-        //printf("Ricevuta risposta '%s'\n", resp);
+
+        if (strcmp(resp, "OK") == 0) {
+           if (strcmp(argument, "z") == 0){
+              FILE *myfile = fopen("archiviocompresso.tar.gz", "w");
+	   }else if (strcmp(argument, "j") == 0){
+	      FILE *myfile = fopen("archiviocompresso.tar.bz2", "w");
+	   }
+	   if (myfile == NULL) {
+	      fprintf(stderr, "Errore: Impossibile aprire il file per la ricezione\n");
+              exit(EXIT_FAILURE);
+	 
+		    
+	    
+        if (received_file == NULL) {
+            fprintf(stderr, "Errore: Impossibile aprire il file per la ricezione\n");
+            exit(EXIT_FAILURE);
+        }
+	
+}
 
 }
 
