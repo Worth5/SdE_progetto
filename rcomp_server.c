@@ -14,7 +14,9 @@
 #define R 0
 #define W 1
 
-const char dir_name[30] = strcat("rcomp_server.temp.", atoi(getpid()));
+const char dir_name[30] = strcat("rcomp_server.temp.", itoa(getpid()));
+//pid 22200
+//str rcomp.temp.2200
 
 // funzioni main
 int setup(int argc, char *argv[]);
@@ -22,16 +24,15 @@ int connect_client(int sd);
 
 // funzioni server richieste
 void add(int conn_sd);
-void compress(int conn_sd);
+void compress(int conn_sd, char *compress_type);
 
 // funzioni subordinate
 int parse_argv_for_port(int argc, char *argv[]);
 long get_dir_size(char *dir_path);
+pid_t new_child_std_to_pipe(char **process, int *child_std, int mode);
+long read_from_write_to(FILE *s_input, FILE *s_output, long size_to_write, char *progress_bar_message);
 
-// funzioni opzionali
-void compress2(int conn_sd);                                                                               // sostituisce la compress semplice aggiungendo progress bar
-long tar_size = build_archive(FILE * temp_archive, char *dir_name, long dir_size);                         // richiesta incompress2
-long zip_size = build_zip(FILE * temp_zip, FILE *temp_archive, char *compression_command, long tar_size);  // richiesta in compress2
+//funzioni opzionali
 
 int main(int argc, char *argv[]) {
     int sd = setup(argc, argv);  // crea socket imposta sockopt esegue bind e listen
@@ -43,17 +44,16 @@ int main(int argc, char *argv[]) {
 
         while (valid_input && strcmp(command, "q")) {  // finche input è valido e diverso da "q"
 
-            ssize_t rcvd_bytes = recv(conn_sd, &command, 1, 0);
-
-            if (rcvd_bytes < 0) {
-                fprintf(stderr, "Impossibile ricevere dati su socket: %s\n", strerror(errno));
+            if (recv(conn_sd, &command, 1, 0) < 0) {
+                fprintf(stderr, "Impossibile ricevere dati da socket: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
             }
-            else if (!strcmp(command, "a")) {
+
+            if (!strcmp(command, "a")) {
                 add(conn_sd);  // riceve file e lo salva
             }
             else if ((!strcmp(command, "j")) || (!strcmp(command, "z"))) {
-                compress(conn_sd);  // fork al comando tar con exec poi manda il file al client
+                compress(conn_sd, command);  // fork al comando tar con exec poi manda il file al client
             }
             else if (!strcmp(command, "q")) {
                 printf("Connection interrupted by client\n");
@@ -69,6 +69,8 @@ int main(int argc, char *argv[]) {
     close(sd);
     return EXIT_SUCCESS;
 }
+
+///////////////////////////////////////////////////
 
 int setup(int argc, char *argv[]) {  // create socket + socket opt + bind() return socket
 
@@ -119,6 +121,8 @@ int setup(int argc, char *argv[]) {  // create socket + socket opt + bind() retu
     return sd;
 }
 
+/////////////////////////////////////////////////////////////
+
 int parse_argv_for_port(int argc, char *argv[]) {
     // debug("parse_argv_for_port()\n",3);
     for (int j = 1; j < argc; j++) {
@@ -139,6 +143,8 @@ int parse_argv_for_port(int argc, char *argv[]) {
     // debug("no arg has valid port\n",3);
     return -1;
 }
+
+//////////////////////////////////////////////////////////////
 
 int connect_client(int sd) {
     // --- ATTESA DI CONNESSIONE --- //
@@ -163,6 +169,8 @@ int connect_client(int sd) {
     printf("Connesso al client %s:%d\n", client_addr_str, ntohs(client_addr.sin_port));
     return conn_sd;
 }
+
+//////////////////////////////////////////////////////
 
 void add(int conn_sd) {
     printf("Add request received\n");
@@ -202,7 +210,7 @@ void add(int conn_sd) {
 
     // crea file all'interno della dir con nome ricevuto
     int fd;
-    if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0777)) < 0) {
+    if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 777)) < 0) {//   rwx rwx rwx -> 111 111 111-> 7 7 7 
         fprintf(stderr, "ERROR: cannot create file %s (%s)\n", filename, strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -242,333 +250,319 @@ void add(int conn_sd) {
     chdir("..");  // gestione errore?
 }
 
-void compress(int conn_sd) {
+//////////////////////////////////////////////////////////////////
+
+void compress(int conn_sd, char *compress_type) {
     printf("Compress request received\n");
 
-    // receive compression type from client
-    char arg[2];
-    ssize_t rcvd_bytes;
-    if ((rcvd_bytes = recv(conn_sd, arg, sizeof(arg), 0)) < 0) {
-        fprintf(stderr, "Error receiving compression type: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+    /*
+    //quetso blocco se child spawnato con  execlp
+    char tar_command[PATH_MAX + 20];
+    snprintf(tar_command, sizeof(tar_command), "tar cf - -C %s .", dir_name);
+    char compress_command[20];
+    snprintf(compress_command, sizeof(compress_command), "%s -c -f", strcmp(comp_type,"j")?"gzip":"bzip2");
+    printf("compress_command: %s", compress_command);
+    */
+    
 
-    // setup tar command
-    char tar_command[100];
-    if (strcmp(arg, "z") == 0) {
-        snprintf(tar_command, sizeof(tar_command), "tar czf - -C ./%s .", dir_name);
-    }
-    else if (strcmp(arg, "j") == 0) {
-        snprintf(tar_command, sizeof(tar_command), "tar cjf - -C ./%s .", dir_name);
-    }
-    else {
-        fprintf(stderr, "Invalid compression type received: %s\n", arg);
-        exit(EXIT_FAILURE);
-    }
+    char *tar_command[] = {"tar", "cf", "-", "-C", dir_name, ".", NULL};
+    //.. genitore
+    //. cartella stessa
+    // execvp(tar_command[0],tar_command);
+    char *compress_command[] = {(strcmp(compress_type, "j") ? "gzip" : "bzip2"), "-c", NULL};
 
-    // controllo che la cartella esista
-    struct stat directory_stat;
-    if (stat(dir_name, &dir_stat) == -1) {
-        // dir non esiste -> nessun file da comprimere
-        if (errno == ENOENT) {  // ENOENT
-            char *str = "no";
-            if (send(conn_sd, str, strlen(str) + 1, 0) < 0) {
-                fprintf(stderr, "Error sending data: %s\n", strerror(errno));
-                exit(EXIT_FAILURE);
-            }
-            printf("No file ready for compression");
-            return;
-        }
-        else {  // errore diverso in lettura dir
-            fprintf(stderr, "ERROR: cannot open dir %s (%s)\n", filename, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-    }
+    long dir_size = get_dir_size(dir_name);
+    printf("uncompressed_size: %ld\n", dir_size);
 
-    // ok to server comincia compressione
+    // send ok or no
+    
     char *str = "ok";
-    if (send(conn_sd, str, strlen(str) + 1, 0) < 0) {
-        fprintf(stderr, "Error sending data: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    // use popen -> fork and connect stdout of child process to stream
-    FILE *tarStream = popen(tar_command, "r");
-    if (tarStream == NULL) {
-        fprintf(stderr, "Error executing tar: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    // ho bisogno di mandare lunghezza file
-    // copio archivio in file temporaneo e ne valuto la lunghezza
-    FILE *temp_file = tmpfile();
-    if (temp_file == NULL) {
-        fprintf(stderr, "Error creating temporary file: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    char buff[BUFFSIZE];
-    size_t bytes_read = 1;
-    while (bytes_read > 0) {
-        if (bytes_read = fread(buffer, 1, sizeof(buffer), tarStream) < 0) {
-            fprintf(stderr, "Error reading child process: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-        if (fwrite(buffer, 1, bytes_read, temp_file) < 0) {
-            fprintf(stderr, "Error wrinting temp file: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    // trovo filesize
-    fseek(temp_file, 0, SEEK_END);
-    long fileSize = ftell(tempFile);
-    fseek(temp_file, 0, SEEK_SET);
-
-    // comunico filesize
-    if (send(conn_sd, hton(fileSize), sizeof(fileSize), 0); < 0) {
-        fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    // legge stream temp_file e invia bytes a client
-    while ((bytes_read = fread(buff, 1, sizeof(buff), temp_file)) > 0) {
-        ssize_t snd_bytes = send(conn_sd, buff, bytes_read, 0);
-        if (snd_bytes < 0) {
-            fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    // Close
-    if (fclose(temp_file) < 0) {
-        fprintf(stderr, "Error closing temporary file: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    if (pclose(tarStream) < 0) {
-        fprintf(stderr, "Error closing tar process: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-}
-
-//////////////////////////////////////////////////////////////
-
-void compress2(int conn_sd) {
-    // receive compression type from client
-    char arg[2];
-    ssize_t rcvd_bytes;
-    if ((rcvd_bytes = recv(conn_sd, arg, sizeof(arg), 0)) < 0) {
-        fprintf(stderr, "Error receiving compression type: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    char compression_command[10];
-    if (strcmp(arg, "z") == 0) {
-        snprintf(compression_command, sizeof(compression_command), "gzip", dir_name);
-    }
-    else if (strcmp(arg, "j") == 0) {
-        snprintf(compression_command, sizeof(compression_command), "bzip2", dir_name);
-    }
-    else {
-        return -1;
-    }
-
-    // ottengo grandezza dir e controllo allo stesso tempo se ci sono file disponibili per compress
-    long dir_size;
-    if ((dir_size = get_dir_size(dir_name)) < 0) {
-        char *str = "no";
+    if (dir_size < 0) {
+        fprintf(stderr, "No file to compress\n");
+        strcpy(str, "no");
         if (send(conn_sd, str, strlen(str) + 1, 0) < 0) {
             fprintf(stderr, "Error sending data: %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         }
-        printf("No file ready for compression\n");
+        return;
     }
-
-    // creo file temporaneo e ci salvo archivio
-    FILE *temp_archive = tmpfile();
-    if (temp_archive == NULL) {
-        fprintf(stderr, "Error creating temporary file: %s\n", strerror(errno));
+    if (send(conn_sd, str, strlen(str) + 1, 0) < 0) {
+        fprintf(stderr, "Error sending data: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    // creo archivio e ritorno grandezza in byte
-    long tar_size = build_archive(temp_archive, dir_name, dir_size);
+    /*
+    crei figlio (tar-archivio)  -> file
+                                -> pipe  -> barra progresso -> client
+                                                            -> nuovo processo figlio(copress)-> pipe ->client
 
-    // creo file temporaneo e ci salvo file compresso
-    FILE *temp_zip = tmpfile();
-    if (temp_archive == NULL) {
-        fprintf(stderr, "Error creating temporary file: %s\n", strerror(errno));
+    crei figlio (tar e compress) ->pipe -> client
+                    ^ bzip2
+    */
+
+
+    // create child redirect std (in out err)
+    int tar_child_pipe[3];
+    int tar_pipe_mode = (1 << STDOUT_FILENO) | (1 << STDERR_FILENO);
+    pid_t tar_child_pid = new_child_std_to_pipe(tar_command, tar_child_pipe, tar_pipe_mode);
+
+    int compress_child_pipe[3];
+    int compress_pipe_mode = (1 << STDIN_FILENO) | (1 << STDOUT_FILENO);
+    pid_t compress_child_pid = new_child_std_to_pipe(compress_command, compress_child_pipe, compress_pipe_mode);
+
+    FILE *tar_out_stream = fdopen(tar_child_pipe[STDOUT_FILENO], "r");
+    FILE *compress_in_stream = fdopen(compress_child_pipe[STDIN_FILENO], "w");
+    FILE *compress_out_stream = fdopen(compress_child_pipe[STDOUT_FILENO], "r");
+    FILE *myfile = fopen("pippo", "w");  // for debug without client
+
+    /*
+    while(fread(tar)>0){
+        fwrite(compress);
+    }
+    */
+
+    long compressed_size = read_from_write_to(tar_out_stream, compress_in_stream, extimate_archive_size(dir_size), "Compression");
+    printf("compressed_size: %ld\n", compressed_size);
+    if (compressed_size < 0) {
+        fprintf(stderr, "ERROR: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    // creo file compresso e ritorno grandezza in byte
-    long zip_size = build_zip(temp_zip, temp_archive, compression_command, tar_size);
 
-    // comunico filesize
-    if (send(conn_sd, hton(fileSize), sizeof(fileSize), 0); < 0) {
-        fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
+    // esegui questo blocco oppure quello sotto
+    /*
+    if (myfile == NULL) {
+        printf("error opening file:%s", strerror(errno));
         exit(EXIT_FAILURE);
     }
+    long byte_file_written = read_from_write_to(compress_out_stream, myfile, compressed_size, "Writing file");
+    printf("byte_file_written: %ld\n", byte_file_written);
+    fclose(myfile);
+    */
 
-    // legge stream temp_file e invia bytes a client
-    while ((bytes_read = fread(buff, 1, sizeof(buff), temp_file)) > 0) {
-        ssize_t snd_bytes = send(conn_sd, buff, bytes_read, 0);
-        if (snd_bytes < 0) {
-            fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
+    // oppure esegui questo
+    
+        // mando lunghezza file
+        if (send(conn_sd, hton(compressed_size), sizeof(compressed_size), 0) < 0) {
+            fprintf(stderr, "Error sending data: %s\n", strerror(errno));
             exit(EXIT_FAILURE);
         }
-    }
 
-    // Close
-    if (fclose(temp_file) < 0) {
-        fprintf(stderr, "Error closing temporary file: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+        // mando file
+        while ((bytes_read = fread(buff, 1, sizeof(buff), compress_output_stream)) > 0) {
+            ssize_t snd_bytes = send(conn_sd, buff, bytes_read, 0);
+            if (snd_bytes < 0) {
+                fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
+                exit(EXIT_FAILURE);
+            }
+        }
+    
+    // mancano i controlli errore
+    close(tar_child_pipe[STDERR_FILENO]);
+    close(tar_child_pipe[STDIN_FILENO]);
+    close(compress_child_pipe[STDERR_FILENO]);
+
+    fclose(tar_out_stream);
+    fclose(compress_in_stream);
+    fclose(compress_in_stream);
+    fclose(myfile);
 }
 
-//////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
-long build_archive(FILE *temp_file, char *dir_name, int dir_size) {
-    // creo stream associato a comando tar con popen()
-    char tar_command[50];
-    snprintf(tar_command, sizeof(tar_command), "tar cf - -C ./%s .", dir_name);
-    FILE *tar_stream = popen(tar_command, "r");
-    if (tar_stream == NULL) {
-        fprintf(stderr, "Error executing tar: %s\n", strerror(errno));
+pid_t new_child_std_to_pipe(char **process, int *child_std, int mode) {
+    /*
+    la funzione crea tre pipe le associa a std in out err del processo figlio
+    il processo figlio è creato con execl(command , argument)
+    ritorna pid processo figlio
+    */
+
+    int p_input[2];
+    int p_output[2];
+    int p_err[2];
+    pipe(p_input);
+    pipe(p_output);
+    pipe(p_err);
+
+    // ---------- fork -------------//
+    pid_t PID_CHILD = fork();
+    if (PID_CHILD == -1) {
+        fprintf(stderr, "Error executing fork: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
-    // creo archivio e lo salvo in file temp
-    char buffer[BUFFSIZE];
-    size_t bytes_read;
-    long total_read;
-    while ((bytes_read = fread(buffer, 1, sizeof(buffer), tar_stream)) > 0) {
-        if (fwrite(buffer, 1, bytes_read, temp_file) < bytes_read) {
-            fprintf(stderr, "Error writing to temporary file: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
+    //--------- child --------------//
+    if (PID_CHILD == 0) {
+        close(p_input[W]);
+        close(p_output[R]);
+        close(p_output[R]);
+
+        if (mode & (1 << STDIN_FILENO)) {
+            dup2(p_input[R], STDIN_FILENO);
         }
-        else {
-            // qui implemento una progress bar
-            total_read += bytes_read;
-            int progress = (int)((total_read / (float)dir_size) * 100);
-            printf("Progress: [%d%%]\r", progress);
-            fflush(stdout);
+        close(p_input[R]);
+
+        if (mode & (1 << STDOUT_FILENO)) {
+            dup2(p_output[W], STDOUT_FILENO);
         }
+        close(p_output[W]);
+
+        if (mode & (1 << STDERR_FILENO)) {
+            dup2(p_err[W], STDERR_FILENO);
+        }
+        close(p_err[W]);
+
+        usleep(10000);
+        if (mode & (1 << STDERR_FILENO)) {  // debug
+            fprintf(stderr, "child speakiiiiiiiiiiiiiiiing\n");
+        }
+
+        // execlp("sh", "sh", "-c", process, (char *)NULL);
+        execvp(process[0], process);
+        fprintf(stderr, "Error executing child: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
     }
 
-    if (ferror(tar_stream)) {
-        fprintf(stderr, "Error reding from archive: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
+    //--------- parent --------------//
+    close(p_input[R]);
+    close(p_output[W]);
+    close(p_err[W]);
+
+    // passo pipe richieste chiudo le altre
+    if (mode & (1 << STDIN_FILENO)) {
+        child_std[STDIN_FILENO] = p_input[W];
+        printf("child %d: stdin redirected\n", PID_CHILD);
     }
     else {
-        printf("Progress: [100%%]\n");  // per avere \n
+        close(p_input[W]);
     }
 
-    /* altro modo per trovare lunghezza
-    //trovo filesize file temporaneo
-    fseek(temp_file, 0, SEEK_END);
-    long fileSize = ftell(tempFile);
-    fseek(temp_file, 0, SEEK_SET);
-    */
-    close(tar_stream);
+    if (mode & (1 << STDOUT_FILENO)) {
+        child_std[STDOUT_FILENO] = p_output[R];
+        printf("child %d: stdout redirected\n", PID_CHILD);
+    }
+    else {
+        close(p_output[R]);
+    }
+
+    if (mode & (1 << STDERR_FILENO)) {
+        child_std[STDERR_FILENO] = p_err[R];
+        printf("child %d: stdout redirected\n", PID_CHILD);
+    }
+    else {
+        close(p_err[R]);
+    }
+
+    return PID_CHILD;
+}
+
+////////////////////////////////////////////////////
+
+long read_from_write_to(FILE *s_input, FILE *s_output, long total_to_write, char *progress_bar_message) {
+    // creo archivio e lo salvo in file temp
+
+    char buffer[BUFFSIZE];
+    size_t bytes_read;
+    long total_read = 0;
+
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), s_input)) > 0) {
+        size_t bytes_written = fwrite(buffer, 1, bytes_read, s_output);
+        total_read += bytes_written;
+        if (bytes_written < bytes_read) {
+            fprintf(stderr, "ERROR accessing file: %s", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        if (total_to_write) {
+            progress_bar(total_read, total_to_write, progress_bar_message);
+        }
+    }
+    //altrimenti feof()
+    if (ferror(s_input)) {
+        fprintf(stderr, "ERROR accessing file: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (size_to_write) {
+        printf("\n");  // per avere \n dopo progress bar
+    }
     // return filesize;
     return total_read;
 }
 
-//////////////////////////////////////////////////////////////
-
-long build_zip(FILE *temp_zip, FILE *temp_archive, char *command, long tar_size) {
-    // creo processo figlio con pipe input e pipe output
-    // prende archivio in input
-    // lo comprime in output
-    int p_input[2];
-    int p_output[2];
-    pipe(p_input);
-    pipe(p_output);
-
-    // fork
-    pid_t PID_child_compress = fork();
-    if (PID_child_compress == -1) {
-        fprintf(stderr, "Error executing fork: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    if (PID_child_compress == 0) {
-        dup2(p_input[R], STDIN_FILENO);
-        close(p_input[W]);
-        dup2(p_output[R], STDOUT_FILENO);
-        close(p_output[W]);
-
-        execlp(command, command, "-c", NULL);
-        fprintf(stderr, "Error executing child: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    else {
-        close(p_input[R]);
-        close(p_output[W]);
-    }
-
-    FILE *to_input = fdopen(p_input[1], "w");
-    FILE *from_output = fdopen(p_output[0], "r");
-
-    // write to compression algorithm
-    char buffer[BUFFSIZE];
-    size_t bytes_read = 1;
-    while (bytes_read = fread(buffer, 1, sizeof(buffer), temp_archive) > 0) {
-        if (fwrite(buffer, 1, bytes_read, to_input) < 0) {
-            fprintf(stderr, "Error wrinting temp file: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-        else {
-            // qui implemento una progress bar
-            total_read += bytes_read;
-            int progress = (int)((total_read / (float)tar_size) * 100);
-            printf("Progress: [%d%%]\r", progress);
-            fflush(stdout);
-        }
-    }
-    fclose(to_input);  // esegue flush input buffer
-
-    // read from compression algorithm and store file
-    while (bytes_read = fread(buffer, 1, sizeof(buffer), from_output) > 0) {
-        if (fwrite(buffer, 1, bytes_read, temp_zip) < 0) {
-            fprintf(stderr, "Error wrinting temp file: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-    }
-    printf("Progress: [100%%]\n");  // per avere \n
-    fclose(from_output);
-}
-
-//////////////////////////////////////////////////////////////
+///////////////////////////////////////////////
 
 long get_dir_size(char *dir_path) {
     // controllo che la cartella esista
     struct stat dir_stat;
-    if (stat(dir_name, &dir_stat) == -1) {
+    if (stat(dir_path, &dir_stat) == -1) {
         // dir non esiste -> nessun file da comprimere
-        if (errno == ENOENT) {  // ENOENT
+        if (errno == ENOENT) {  // ENOENT 
             return -1;
         }
         else {  // errore diverso in lettura dir
-            fprintf(stderr, "ERROR: cannot open dir %s (%s)\n", dir_name, strerror(errno));
+            fprintf(stderr, "ERROR: cannot open dir %s (%s)\n", dir_path, strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
 
     DIR *dp = opendir(dir_path);
+    if (dp == NULL) {
+        printf("impossbile aprire directory%S: %s", dir_path, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
     struct dirent *dirp;  // dirent = dir entries
+    //dirent ->[puntatore a i-node, nomefile]
     struct stat file_stat;
     long total_size = 0;
+    //cartella
+        //dirent 1
+        //dirent 2
+        //dirent n
+
+    // raddir()  -> dirent numero 1 ->[puntatore a i-node, nomefile]
+    // readdir() -> dirent nomero 2 ->
 
     while ((dirp = readdir(dp)) != NULL) {
-        // ottieni dimensione del file
-        if (stat(dirp->d_name, &file_stat) < 0) {
-            fprintf(stderr, "Impossibile recuperare metadati del file %s\n", dirp->d_name);
-            exit(EXIT_FAILURE);
+
+        //prendo nome file
+        char file_path[PATH_MAX];
+        snprintf(file_path, sizeof(file_path), "%s/%s", dir_path, dirp->d_name);
+
+        //uso il nome del file nella stat()
+        if (stat(file_path, &file_stat) == -1) {
+            fprintf(stderr, "Error getting file metadata:%s", dirp->d_name);
+            closedir(dp);
+            return -1;
         }
-        if (strcmp(dirp->d_name, "..") != 0) {
+
+        if (S_ISREG(file_stat.st_mode)) {
+            // Regular file, not a directory
             total_size += file_stat.st_size;
+        }
+        else if (S_ISDIR(file_stat.st_mode)) {
+            // here recursion if u want function to search subfolers
+            // get_dir_size(thisfolder)
         }
     }
 
     closedir(dp);
     return total_size;
 }
+
+///////////////////////////////////////////////
+
+void progress_bar(long processed, long total, char *message) {
+    printf("Processed= %ld    ", processed);
+    int progress = (int)((processed / (float)total) * 100);
+    printf("%s progress: [%d%%]\r", message, progress);//  %d per intero  %% per scrivere "%"  -> "message progress:[n%]
+    fflush(stdout);
+}
+
+///////////////////////////////////////////////7
+
+long extimate_archive_size(long dir_size) {  // ricavata a tentativi per ora corretta
+    long expected_size = dir_size - (dir_size % 10240) + 10240;
+    if ((dir_size % 10240) <= 8192)
+        return expected_size;
+    else
+        return expected_size + 10240;
+}
+
+
