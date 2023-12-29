@@ -255,16 +255,6 @@ void add(int conn_sd) {
 void compress(int conn_sd, char *compress_type) {
     printf("Compress request received\n");
 
-    /*
-    //quetso blocco se child spawnato con  execlp
-    char tar_command[PATH_MAX + 20];
-    snprintf(tar_command, sizeof(tar_command), "tar cf - -C %s .", dir_name);
-    char compress_command[20];
-    snprintf(compress_command, sizeof(compress_command), "%s -c -f", strcmp(comp_type,"j")?"gzip":"bzip2");
-    printf("compress_command: %s", compress_command);
-    */
-    
-
     char *tar_command[] = {"tar", "cf", "-", "-C", dir_name, ".", NULL};
     //.. genitore
     //. cartella stessa
@@ -291,17 +281,17 @@ void compress(int conn_sd, char *compress_type) {
         exit(EXIT_FAILURE);
     }
     /*
-    crei figlio (tar-archivio)  -> file
-                                -> pipe  -> barra progresso -> client
-                                                            -> nuovo processo figlio(copress)-> pipe ->client
+    crei figlio (tar-archivio)  -> file oppure pipe + barra progresso -> nuovo processo figlio(copress)-> pipe -> client
 
     crei figlio (tar e compress) ->pipe -> client
                     ^ bzip2
     */
 
 
-    // create child redirect std (in out err)
-    int tar_child_pipe[3];
+    // create child redirect std (in e/o out e/o err a seconda di pipe_mode); 
+	//di fatto se manualmente non leggi da pipe sdterr figlio aver fatto la redirezione è inutile
+	//ma almeno così è già implementato se ci fosse necessità
+    int tar_child_pipe[3];//i tre fd per le pipe, creati tutti usati solo quelli specificati
     int tar_pipe_mode = (1 << STDOUT_FILENO) | (1 << STDERR_FILENO);
     pid_t tar_child_pid = new_child_std_to_pipe(tar_command, tar_child_pipe, tar_pipe_mode);
 
@@ -312,9 +302,9 @@ void compress(int conn_sd, char *compress_type) {
     FILE *tar_out_stream = fdopen(tar_child_pipe[STDOUT_FILENO], "r");
     FILE *compress_in_stream = fdopen(compress_child_pipe[STDIN_FILENO], "w");
     FILE *compress_out_stream = fdopen(compress_child_pipe[STDOUT_FILENO], "r");
-    FILE *myfile = fopen("pippo", "w");  // for debug without client
+    if(offline)FILE *myfile = fopen("pippo", "w");  // for debug without client
 
-    /*
+    /*   read_from_write_to è ciclo read write + controllo errore + barra progresso
     while(fread(tar)>0){
         fwrite(compress);
     }
@@ -327,19 +317,15 @@ void compress(int conn_sd, char *compress_type) {
         exit(EXIT_FAILURE);
     }
 
-    // esegui questo blocco oppure quello sotto
-    /*
-    if (myfile == NULL) {
-        printf("error opening file:%s", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    long byte_file_written = read_from_write_to(compress_out_stream, myfile, compressed_size, "Writing file");
-    printf("byte_file_written: %ld\n", byte_file_written);
-    fclose(myfile);
-    */
+	fclose(tar_out_stream);
+	fclose(compress_in_stream);	//questo importantissimo metterlo qui
+							//quando chiudo file processi figlio capisce che input è terminato
+							// diverso da fare fflush
+							//non testato ma prob viene inviato EOF o fa errore la lettura e smette di leggere....
+							//ci sarebbe da provare a inviare un EOF quando hi finito tutto quello che va inviato e vedere
+							//se si comporta allo stesso mdo che chiudere stream
 
-    // oppure esegui questo
-    
+
         // mando lunghezza file
         if (send(conn_sd, hton(compressed_size), sizeof(compressed_size), 0) < 0) {
             fprintf(stderr, "Error sending data: %s\n", strerror(errno));
@@ -347,24 +333,22 @@ void compress(int conn_sd, char *compress_type) {
         }
 
         // mando file
-        while ((bytes_read = fread(buff, 1, sizeof(buff), compress_output_stream)) > 0) {
+		long total_sent=0;
+        while ((bytes_read = fread(buff, 1, sizeof(buff), compress_out_stream)) > 0) {
             ssize_t snd_bytes = send(conn_sd, buff, bytes_read, 0);
+			total_sent+=snd_bytes;
+			progress_bar(total_sent,compressed_size,"Sending");
             if (snd_bytes < 0) {
                 fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
             }
         }
-    
     // mancano i controlli errore
     close(tar_child_pipe[STDERR_FILENO]);
     close(tar_child_pipe[STDIN_FILENO]);
     close(compress_child_pipe[STDERR_FILENO]);
 
-    fclose(tar_out_stream);
-    fclose(compress_in_stream);
-    fclose(compress_in_stream);
-    fclose(myfile);
-}
+    fclose(compress_out_stream);
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -410,9 +394,8 @@ pid_t new_child_std_to_pipe(char **process, int *child_std, int mode) {
         }
         close(p_err[W]);
 
-        usleep(10000);
         if (mode & (1 << STDERR_FILENO)) {  // debug
-            fprintf(stderr, "child speakiiiiiiiiiiiiiiiing\n");
+            fprintf(stderr, "child speaking\n");
         }
 
         // execlp("sh", "sh", "-c", process, (char *)NULL);
