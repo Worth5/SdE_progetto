@@ -10,15 +10,16 @@
 #include <arpa/inet.h>			//for uint16_t htons(uint16_t data);
 #include <sys/stat.h>			//for stat() file size
 
+//#define BUFFSIZE 4096
+#define PATH_MAX 4096//also defined in <limits.h>
 //abilita printf di debug all'interno dell funzione debug()
 #define DEBUG_LEVEL 0 //0  disabilita tutte printf di debug, più è alto il valore maggiori saranno le printf...
+#define COMMAND_LENGHT_MAX 9
 
-
-//creo una struttura che contiene comando e argomento
-struct request{					
-	char *command;			
-	char *argument;
-
+int sd;			//socket descriptor
+struct request{	//creo una struttura che contiene comando e argomento			
+	char command[COMMAND_LENGHT_MAX];			
+	char argument[PATH_MAX];
 };
 
 //funzioni nel main
@@ -27,7 +28,7 @@ void get_request(struct request rq);
 void manage_request(int sd, struct request rq);
 
 //funzioni subordinate
-int fget_word(FILE* fd, char* str);
+int fget_word(FILE* fd, char* str, int lenght_max);
 int parse_argv_for_ip(int argc, char* argv[]);
 int parse_argv_for_port(int argc, char* argv[]);
 
@@ -45,18 +46,11 @@ void debug(char *str, int level){	//stampa in verde messaggio debug
 void help();
 void add(int sd, char* argument);
 void compress(int sd, char* argument);
-void quit(int sd, struct request rq);
+void quit();
 
 //signal handler
 void sigint_handler(int signo) {
-	int fd[2];
-	pipe(fd);
-	close(STDIN_FILENO);
-	dup2(fd[0],STDIN_FILENO);
-
-	dprintf(fd[1],"quit\n");
-	debug("sigint\n",1);
-
+	quit();
 } 
 
 //--------------- MAIN --------------- //
@@ -68,12 +62,12 @@ int main(int argc, char *argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-	int sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
-	struct request rq = {.command = malloc(1), .argument = malloc(1)};//crea struttura request che viene usata ogni ciclo e eliminata in quit
+	sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
+	struct request rq;
 	
 	do{
 		debug("main()_while\n",2);
-		get_request(rq); 		// alloco memoria necessaria a contenere stringa richiesta si potrebbe fare più efficente salvando nella struttura 2 variabili LEN1 e LEN2 che salvano lo spazio già allocato per comando e argomnto
+		get_request(rq); 		// fill struct with command and argument
 		manage_request(sd, rq);	// controllo contenuto request e chiamo la funzione principale corrispondente
 	}while (strcmp(rq.command, "quit") != 0);
 
@@ -81,7 +75,7 @@ int main(int argc, char *argv[]){
 	quit(sd, rq);				//manda mess a server chiude socket libera memoria allocata e esegue exit(EXIT_SUCCESS)
 }
 
-
+////////////////////////////////////////////////
 
 int setup(int argc, char* argv[]){
 	debug("setup()\n",2);
@@ -137,6 +131,8 @@ int setup(int argc, char* argv[]){
 	return sd;							//ritorno socket descriptor
 }    
 
+/////////////////////////////////////////////////
+
 int parse_argv_for_ip(int argc, char* argv[]){
 	debug("parse_argv_for_ip()\n",3);
 	int byte[4];
@@ -161,6 +157,8 @@ int parse_argv_for_ip(int argc, char* argv[]){
 	return -1;
 }
 
+//////////////////////////////////////////////////
+
 int parse_argv_for_port(int argc, char* argv[]){
 
 	debug("parse_argv_for_port()\n",3);
@@ -184,61 +182,33 @@ int parse_argv_for_port(int argc, char* argv[]){
 	return -1;
 }
 
-//vecchio get request
-/*
-struct request get_request_vecchio(){	
-
-	printf("rcomp> ");
-	struct request rq = {0};	//struttura inizializzata a zero
-	char input[120]; 
-	
-    if (fgets(input, sizeof(input), stdin) == NULL) {
-        fprintf(stderr, "Error reading input: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    if (sscanf(input, "%9s %99s[^\n]", rq.command, rq.argument) < 1) {	//[^\n] significa che non accetta \n come carattere quindi non assegna rq.argument se c'è solo rd.command si trova in man sscanf
-		printf("No input detected\n");
-    }
-	
-	return rq;
-}
-*/
-
+//////////////////////////////////////////////////
 
 void get_request(struct request rq){ //il nuovo get request assegna memoria dinamicamente
 
 	printf("rcomp> ");
-	//modo carino di leggere tutto stdin dinamicamente ma che non serve nel nostro caso
-	/*
-	int STEP = 0;
-	int SIZE = 10;
-	char *input = (char *)malloc(SIZE);
-	while (fgets(input + (STEP * SIZE), SIZE, stdin) != NULL){
-		input = (char *)realloc(input, SIZE * (++STEP));
-	}
-	if (ferror){
-		fprintf(stderr, "Error reading input: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	free(input);
-	*/
+
 	debug("\n",3);
 	debug("get_request()_reset_struct\n",3);
-	rq.argument[0] = '\0'; // resetta struttura request che contiene ancora vecchi valori;
-	rq.command[0] = '\0';
+	//rq.argument[0] = '\0'; // resetta struttura request che contiene ancora vecchi valori;
+	//rq.command[0] = '\0';
 
 	//prendo due parole da stdin poi svuoto stdin se fosse rimasto qualcosa
 	debug("get_request()_get_word_1\n",3);	
-	int temp = fget_word(stdin, rq.command); 	//prima parola
 
-	if((temp != '\n') && (temp != '\0') && (temp != EOF)){
+	int ret = fget_word(stdin, rq.command,COMMAND_LENGHT_MAX); 	//prima parola
+
+
+	if((ret != '\n') && (ret != '\0')){
+
 		debug("get_request()_get_word_2\n",3);
-		temp = fget_word(stdin, rq.argument);	//seconda parola
-	}
+		ret = fget_word(stdin, rq.argument, PATH_MAX);	//seconda parola
 
-	if((temp != '\n') && (temp != '\0') && (temp != EOF)){
+	}
+  
+	if((ret != '\n') && (ret != '\0')){
 		debug("get_request()_flush_exess_stdin\n",4);
+		int temp;
 		while (((temp = getchar()) != '\n') && (temp != EOF))	//svuoto stdin
 			debug((char*)&temp,5);
 	}
@@ -248,37 +218,40 @@ void get_request(struct request rq){ //il nuovo get request assegna memoria dina
 	
 }
 
-int fget_word(FILE* fd, char* str){
+//////////////////////////////////////////////////
+
+int fget_word(FILE* fd, char* str,int lenght_max){
 	int byte;
 	int SIZE = 2;
-
+	str[0]='\0';
 	debug("fget_word()_remove_spaces\n",4);
-	while(((byte = fgetc(fd)) == ' ') || (byte == '\n')){	//remove leading white spaces
-		
+	while(((byte = fgetc(fd)) == ' ')){	//remove leading white spaces
 	}
-	
-	if (byte < 0){
-			printf("ERROR while reading input: %s",strerror(errno));
-			//exit(EXIT_FAILURE);
-		}
 	debug("fget_word()_ungetc()\n",4);
-	ungetc(byte, fd);		//rimette nello stream il primo non_white character
-	
+	ungetc(byte, fd);	//rimette nello stream il primo non_space character
+
+	int cont=0;
 	debug("fget_word()_get_letters\n",4);
-	while ( ((byte = fgetc(fd)) != '\n') && (byte != ' ') && (byte != EOF) ){
+
+	while(((byte = fgetc(fd)) != '\n') && (byte !=EOF)){
+
+		if(cont > lenght_max){
+			fprintf(stderr,"input discarded, max lenght exeeded\n");
+			str[0]= (int)'\0';
+			return 0; //oltre lunghezza max
+		}
+		str[cont++]=(char)byte;
 		debug((char*)&byte,5);
 		debug("\n",5);
-		if (byte < 0){
-			printf("ERROR while reading input: %s",strerror(errno));
-			exit(EXIT_FAILURE);
-		}
-		
-		str = (char *)realloc(str, SIZE * sizeof(char)); 
-		SIZE++;
-		strncat(str, (char *)&byte, 1);
+	}
+
+	if (ferror(fd)||(cont==0)){
+		byte=(int)(str[0]='\0');
 	}
 	return byte;
 }
+
+//////////////////////////////////////////////////
 
 void manage_request(int sd, struct request rq){
 	debug("manage_request()\n",3);	
@@ -296,6 +269,8 @@ void manage_request(int sd, struct request rq){
 	}
 }
 
+//////////////////////////////////////////////////
+
 void help(){
 	debug("help()",4);
 	const char* string =
@@ -310,6 +285,8 @@ void help(){
 	    "\t--> disconnessione\n";
 	printf(string);
 }
+
+//////////////////////////////////////////////////
 
 void add(int sd, char* argument){
 	debug("add()_argument:",4);					//debug se printa sei nella funzione
@@ -326,7 +303,7 @@ void add(int sd, char* argument){
 	int fd;
 
 	if((fd = open(argument, O_RDONLY)) < 0){
-		fprintf(stderr, "ERROR: File %s not found (%s)\n", argument, strerror(errno));
+		fprintf(stderr, "ERROR: File '%s' not found: (%s)\n", argument, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	
@@ -340,7 +317,7 @@ void add(int sd, char* argument){
 	ssize_t snd_bytes;
 
 	//------------INVIO COMANDO AL SERVER---------------------//
-	cahr *str = "a";
+	char *str = "a";
 	if((snd_bytes = send(sd, str, strlen(str)+1, 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
@@ -384,9 +361,10 @@ void add(int sd, char* argument){
 		fprintf(stderr, "ERROR while reading\n");
 		exit(EXIT_FAILURE);
 	}	
-	
 	printf("File %s sent\n", argument);
 }
+
+//////////////////////////////////////////////////
 
 void compress(int sd, char* argument){
 	debug("compress()_argument:\n",4);				//debug se printa sei nella funzione
@@ -401,7 +379,7 @@ void compress(int sd, char* argument){
 		printf("Messaggio inviato al server: %s\n", argument);
 	}else if (strcmp(argument, "") == 0){
 		strcpy(argument, "z");
-		if ((snd_bytes = send(sd, argument, strlen(argument) + 1, 0)) < 0) {
+		if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0) {
 			fprintf(stderr, "Error : Unable to specify the algorithm: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
@@ -410,68 +388,90 @@ void compress(int sd, char* argument){
 		printf("Error: Invalid argument, use 'z' for gzip or 'j' for bzip2.\n");
 	}
 
-        // --- RICEZIONE RISPOSTA --- //
-        char resp[3];
-        rcvd_bytes = recv(sd, &resp, 2, 0);
-        if (rcvd_bytes < 0)
-        {
-            fprintf(stderr, "ERRORE: aggiungere almeno un file prima di effettuare la compressione: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-        resp[rcvd_bytes] = '\0';
-        char *filename[30];
-        if (strcmp(resp, "OK") == 0) {
-           if (strcmp(argument, "z") == 0){
-              strcpy(filname,"archiviocompresso.tar.gz");
-	   }else{
-	      strcpy(filneme,"archiviocompresso.tar.bz2");
-	   }
-		
-		FILE *myfile = fopen(filename, "wb");
-	   	if (myfile == NULL) {
-	      fprintf(stderr, "Errore: Impossibile aprire il file per la ricezione\n");
-              exit(EXIT_FAILURE);
-	   }
-
-		//ricevere grandezza file
-		//long file_size=
-			
-	   FILE *socket_stream =fdopen(socked_descriptor, "r");
-	   if ((soclet_stream = fopen(filename_in, "r")) == NULL){
-              fprintf(stderr,"ERROR while opening %s\n", filename_in); 
-              exit(EXIT_FAILURE);
-	   }
-		
-            char buffer[BUFFSIZE];
-	      size_t bytes_read;
-	      long total_read = 0;
-              while ( total_read<file_size) {
-				rcvd_bytes = recv(conn_sd, &buffer, sizeof(buffer), 0);
-		   		size_t bytes_written = fwrite(buffer, 1, recvd_bytes, myfile);
-		   		total_read += bytes_written;
-		   if (bytes_written < recvd_bytes) {
-		      fprintf(stderr, "Error writing to temporary file: %s\n", strerror(errno));
-		      exit(EXIT_FAILURE);
-		   }
-	    } 
-		//chiudere il file con controllo errore
-		//printf 
+	// --- RICEZIONE RISPOSTA --- //
+	char resp[3];
+	rcvd_bytes = recv(sd, &resp, 2, 0);
+	if (rcvd_bytes < 0)
+	{	//qui è fallita la ricezione che è divrso all'aver ricevuto "NO"
+		fprintf(stderr, "ERRORE: aggiungere almeno un file prima di effettuare la compressione: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
 	}
+
+
+
+	//mi aspetto dal server OK oppure NO 
+	//attenzione manca uscita dalla funzione (return;) in caso NO
+	//manca exit(EXIT_FAILURE) in caso ricezione messaggio inaspettato che non è ne OK ne NO (opzionale)
+
+	resp[rcvd_bytes] = '\0';
+	char filename[30];
+	if (strcmp(resp, "OK") == 0) {
+		if (strcmp(argument, "z") == 0){
+			strcpy(filename,"archiviocompresso.tar.gz");
+		}else{
+			strcpy(filename,"archiviocompresso.tar.bz2");
+		}
+	}
+	//qui else ricevi no -> fai return
+
+
+	FILE *myfile = fopen(filename, "wb");//b is telling stream to not convert things like \n but leave as '\' e 'n'
+	if (myfile == NULL) {
+		fprintf(stderr, "Errore: Impossibile aprire il file per la ricezione\n");
+			exit(EXIT_FAILURE);
+	}
+
+	//manca ricevere grandezza file
+	int file_size;
+	// recv() 
+	
+	/* qui apri stream associato a socket ma conviene usare direttamente socket (online è sconsigliato)
+	FILE *socket_stream =fdopen(socked_descriptor, "r");
+	if ((soclet_stream = fopen(filename_in, "r")) == NULL){
+			fprintf(stderr,"ERROR while opening %s\n", filename_in); 
+			exit(EXIT_FAILURE);
+	}
+	*/
+
+	//manca controllo errore su recv()
+	const int BUFFSIZE=4096;
+	char buffer[BUFFSIZE];
+	size_t bytes_read;
+	long total_read = 0;
+	while ( total_read<file_size) {
+		rcvd_bytes = recv(sd, &buffer, sizeof(buffer), 0);
+		size_t bytes_written = fwrite(buffer, 1, rcvd_bytes, myfile);
+		total_read += bytes_written;
+		//qua si può aggingere progress_bar()
+		if (bytes_written < rcvd_bytes) {
+			fprintf(stderr, "Error writing to temporary file: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	}
+
+
+	//chiudere il file con controllo errore
+	//printf file ricevuto
+	
 }
 
-void quit(int sd, struct request rq) {
-	debug("quit()\n",4);					//debug se printa sei nella funzione
+//////////////////////////////////////////////////
+
+void quit() {
+	debug("quit()\n",4);	//debug se printa sei nella funzione
 	char *str = "q";
 	int snd_bytes;
 
 	if ((snd_bytes = send(sd, &str, strlen(str)+1, 0)) < 0){	//invio quit al server
 		fprintf(stderr, "Impossibile inviare dati su socket: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+		//exit(EXIT_FAILURE); non serve uscire qui sto comunque pianificando di farlo..
+	} 
 
-	free(rq.command);
-	free(rq.argument);
 	close(sd);
 	exit(EXIT_SUCCESS);
 }
+
+
+
+
 
