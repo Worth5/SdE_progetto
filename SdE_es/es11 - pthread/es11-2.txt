@@ -1,0 +1,26 @@
+*********************
+*   es11-2.txt      *
+*********************
+
+
+=== es_dynamicresourcepool.c ===
+
+Scrivere un programma che gestisce un array di risorse di tipo diverso. Il
+numero di tipi di risorsa e' variabile, e viene stabilito passando un 
+parametro dalla linea di comando. 
+
+Il programma crea 3 thread che devono usare delle risorse. 
+- il thread 0 preleva n risorse del tipo 0;
+- il thread 1 preleva n risorse del tipo 1;
+- il thread 2 preleva n risorse del tipo 2.
+Se non ci sono abbastanza risorse disponibili, il thread si mette in attesa
+sulla relativa variabile condition.
+ 
+Inoltre, il programma crea 3 thread che aggiungono delle risorse. 
+- il thread 0 aggiunge m risorse del tipo 0;
+- il thread 1 aggiunge m risorse del tipo 1;
+- il thread 2 aggiunge m risorse del tipo 2.
+Dopo l'aggiunta, il thread risveglia tutti quelli bloccati sulla relativa 
+condition, in modo che questi ultimi possano tentare di prelevare le 
+risorse necessarie.
+

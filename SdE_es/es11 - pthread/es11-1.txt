@@ -1,0 +1,32 @@
+*********************
+*   es11-1.txt       *
+*********************
+
+
+=== es_progressbar.c ===
+
+Scrivere un programma che effettua la copia di un file, mostrando lo stato di
+avanzamento della copia stessa.
+Il programma legge, un carattere alla volta, il contenuto di un file e lo 
+scrive su un secondo file. Inoltre, mostra a video il numero di caratteri 
+copiati fino a quel momento una volta al secondo.
+
+Utilizzare due thread: uno per effettuare la copia, uno per mostrare il numero
+caratteri copiati fino a quel momento.
+ 
+I nomi dei file di input e di output devono essere passati al programma dalla 
+linea di comando.
+ 
+Suggerimento: creare un file abbastanza grande in modo da impiegare un tempo 
+non trascurabile nel processo di copia, ad esempio usando il seguente comando 
+per creare un file da 500MB.
+ 
+    dd if=/dev/zero of=inputfile bs=1024k count=500 2> /dev/null
+ 
+$ ./es_progressbar inputfile outputfile
+Copiati 83632816 caratteri
+Copiati 168149372 caratteri
+Copiati 252630083 caratteri
+Copiati 336733061 caratteri
+Copiati 420548608 caratteri
+Copiati 504390277 caratteri
