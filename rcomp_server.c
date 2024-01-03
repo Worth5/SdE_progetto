@@ -16,7 +16,7 @@
 
 int sd;//globale per poterlo chiudere da signal handler
 
-char tempFolder[30];//parent 
+char tempFolder[30];//parent, name assigned on runtime
 char recvFolder[] = "rcvdFiles";//inside parent, contains received files 
 char compressedFile[] = "compress.temp";//inside parent, compressed output file
 //avvio server crea cartella temporanea "parent"
@@ -82,23 +82,27 @@ int main(int argc, char *argv[]) {
 
         while (valid_input && (strcmp(command, "q")!=0)) {  // finche input è valido e diverso da "q"
 
-            if (recv(conn_sd, &command, 2, 0) < 0) {
+            if (recv(conn_sd, &command, 1, 0) < 0) {
                 fprintf(stderr, "Impossibile ricevere dati da socket: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
             }
+			command[1]='\0';
 
             if (strcmp(command, "a")==0) {
+				printf("Received: add\n");
                 add(conn_sd);  // riceve file e lo salva
             }
             else if ((strcmp(command, "j")==0) || (strcmp(command, "z")==0)) {
+				printf("Received: compress\n");
                 compress(conn_sd, command);  // fork al comando tar con exec poi manda il file al client
             }
             else if (strcmp(command, "q")==0) {
+				printf("Received: quit\n");
                 printf("Connection interrupted by client\n");
             }
             else {
                 valid_input = 0;
-                printf("Invalid command detected\n");
+                printf("Invalid command detected(%s)\n",command);
             }
         }
         printf("Closing connection\n");
@@ -225,7 +229,7 @@ void add(int conn_sd) {
     chdir(recvFolder);
 
     // ricevi lunghezza nome del file
-    int file_name_len;
+    size_t file_name_len;
     if (recv(conn_sd, &file_name_len, sizeof(int), 0) < 0) {
         fprintf(stderr, "Error receiving size of file name: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
@@ -238,6 +242,7 @@ void add(int conn_sd) {
         fprintf(stderr, "Error receiving file name: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
+	filename[file_name_len]='\0';
 
     // check file gìà presente in questo caso non si fa niente e verrà sovrascritto
     struct stat file_info;
@@ -290,7 +295,7 @@ void add(int conn_sd) {
 //////////////////////////////////////////////////////////////////
 
 void compress(int conn_sd, char *comp_type) {
-    printf("Compress request received2\n");
+    printf("Compress request received\n");
 
     // children commands
     char tarCommand[50];
