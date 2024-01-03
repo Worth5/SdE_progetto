@@ -13,18 +13,18 @@
 //#define BUFFSIZE 4096
 #define PATH_MAX 4096//also defined in <limits.h>
 //abilita printf di debug all'interno dell funzione debug()
-#define DEBUG_LEVEL 0 //0  disabilita tutte printf di debug, più è alto il valore maggiori saranno le printf...
+#define DEBUG_LEVEL 10 //0  disabilita tutte printf di debug, più è alto il valore maggiori saranno le printf...
 #define COMMAND_LENGHT_MAX 9
 
 int sd;			//socket descriptor
 struct request{	//creo una struttura che contiene comando e argomento			
-	char command[COMMAND_LENGHT_MAX];			
+	char command[COMMAND_LENGHT_MAX+1];// + \0			
 	char argument[PATH_MAX];
 };
 
 //funzioni nel main
 int setup (int argc, char* argv[]);
-void get_request(struct request rq);                    
+void get_request(struct request *rq);                    
 void manage_request(int sd, struct request rq);
 
 //funzioni subordinate
@@ -36,8 +36,8 @@ int parse_argv_for_port(int argc, char* argv[]);
 void debug(char *str, int level){	//stampa in verde messaggio debug
 	#ifdef DEBUG_LEVEL
 		if (DEBUG_LEVEL >= level){
-			while(level--)printf("\t");	//indenta level volte per visibilità
-			printf("\033[0;34m%s\033[1;0m", str); //colore verde \033[1;32m colore normale \033[1;0m
+			while((--level)>0)fprintf(stderr,"\t");	//indenta level volte per visibilità
+			fprintf(stderr,"\033[0;33m%s\033[1;0m", str); //colore verde \033[1;32m colore normale \033[1;0m
 		}
 	#endif
 }
@@ -55,7 +55,7 @@ void sigint_handler(int signo) {
 
 //--------------- MAIN --------------- //
 int main(int argc, char *argv[]){
-	debug("main()_start\n",1);
+	debug("\nmain()_start\n",1);
 
 	if(signal(SIGINT, sigint_handler) == SIG_ERR){			//Registrazione handler per il segnale SIGINT
 		fprintf(stderr, "ERROR: Handler SIGINT registration failed (%s)\n", strerror(errno));
@@ -65,14 +65,15 @@ int main(int argc, char *argv[]){
 	sd = setup(argc, argv); // gestisce la creazione socket e connessione al server
 	struct request rq;
 	
-	do{
-		debug("main()_while\n",2);
-		get_request(rq); 		// fill struct with command and argument
-		manage_request(sd, rq);	// controllo contenuto request e chiamo la funzione principale corrispondente
-	}while (strcmp(rq.command, "quit") != 0);
+	while(1){//up to manage requets to call quit
 
-	debug("main()_quit\n",1);
-	quit(sd, rq);				//manda mess a server chiude socket libera memoria allocata e esegue exit(EXIT_SUCCESS)
+		debug("main()_while\n",2);
+		get_request(&rq); 		// fill struct with command and argument
+		manage_request(sd, rq);	// controllo contenuto request e chiamo la funzione principale corrispondente
+	}
+
+	debug("main()_non dovresti essere qui\n",1);
+					
 }
 
 ////////////////////////////////////////////////
@@ -184,37 +185,34 @@ int parse_argv_for_port(int argc, char* argv[]){
 
 //////////////////////////////////////////////////
 
-void get_request(struct request rq){ //il nuovo get request assegna memoria dinamicamente
+void get_request(struct request *rq){
 
 	printf("rcomp> ");
-
-	debug("\n",3);
-	debug("get_request()_reset_struct\n",3);
-	//rq.argument[0] = '\0'; // resetta struttura request che contiene ancora vecchi valori;
-	//rq.command[0] = '\0';
 
 	//prendo due parole da stdin poi svuoto stdin se fosse rimasto qualcosa
 	debug("get_request()_get_word_1\n",3);	
 
-	int ret = fget_word(stdin, rq.command,COMMAND_LENGHT_MAX); 	//prima parola
-
+	int ret = fget_word(stdin, rq->command,COMMAND_LENGHT_MAX); 	//prima parola
 
 	if((ret != '\n') && (ret != '\0')){
 
 		debug("get_request()_get_word_2\n",3);
-		ret = fget_word(stdin, rq.argument, PATH_MAX);	//seconda parola
+		ret = fget_word(stdin, rq->argument, PATH_MAX);	//seconda parola
 
+	}
+	else{
+		rq->argument[0]='\0';
 	}
   
 	if((ret != '\n') && (ret != '\0')){
 		debug("get_request()_flush_exess_stdin\n",4);
 		int temp;
 		while (((temp = getchar()) != '\n') && (temp != EOF))	//svuoto stdin
-			debug((char*)&temp,5);
+			debug((char*)&temp,4);
 	}
 
-	printf("Command: %s\n", rq.command);
-	printf("Argument: %s\n", rq.argument);
+	printf("Command: '%s'\n", rq->command);
+	printf("Argument: '%s'\n", rq->argument);
 	
 }
 
@@ -233,12 +231,12 @@ int fget_word(FILE* fd, char* str,int lenght_max){
 	int cont=0;
 	debug("fget_word()_get_letters\n",4);
 
-	while(((byte = fgetc(fd)) != '\n') && (byte !=EOF)){
+	while(((byte = fgetc(fd)) != '\n') && (byte != ' ') && (byte !=EOF)){
 
 		if(cont > lenght_max){
 			fprintf(stderr,"input discarded, max lenght exeeded\n");
 			str[0]= (int)'\0';
-			return 0; //oltre lunghezza max
+			return '\0'; //oltre lunghezza max
 		}
 		str[cont++]=(char)byte;
 		debug((char*)&byte,5);
@@ -246,7 +244,11 @@ int fget_word(FILE* fd, char* str,int lenght_max){
 	}
 
 	if (ferror(fd)||(cont==0)){
-		byte=(int)(str[0]='\0');
+		debug("fget_word()_error returned empty string",4);
+		return str[0]='\0';
+	}
+	else{
+		str[cont]='\0';
 	}
 	return byte;
 }
@@ -264,7 +266,10 @@ void manage_request(int sd, struct request rq){
 	else if(strcmp(rq.command,"compress") == 0){
 		compress(sd, rq.argument);
 	}
-	else if(strcmp(rq.command,"quit") != 0){
+	else if(strcmp(rq.command,"quit") == 0){
+		quit();
+	}
+	else{	
 		printf("ERROR: unknown command\n");
 	}
 }
@@ -272,7 +277,7 @@ void manage_request(int sd, struct request rq){
 //////////////////////////////////////////////////
 
 void help(){
-	debug("help()",4);
+	debug("help()\n",4);
 	const char* string =
 	    "Comandi disponibili\n"
 	    "\thelp:\n"
@@ -458,16 +463,16 @@ void compress(int sd, char* argument){
 //////////////////////////////////////////////////
 
 void quit() {
-	debug("quit()\n",4);	//debug se printa sei nella funzione
-	char *str = "q";
-	int snd_bytes;
+	printf("Quitting\n");
+	//debug("quit()\n",4);	//debug se printa sei nella funzione
 
-	if ((snd_bytes = send(sd, &str, strlen(str)+1, 0)) < 0){	//invio quit al server
+	if (send(sd, "q", 1, 0) < 0){	//invio quit al server
 		fprintf(stderr, "Impossibile inviare dati su socket: %s\n", strerror(errno));
 		//exit(EXIT_FAILURE); non serve uscire qui sto comunque pianificando di farlo..
 	} 
 
 	close(sd);
+
 	exit(EXIT_SUCCESS);
 }
 
