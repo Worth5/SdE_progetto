@@ -417,8 +417,16 @@ void compress(int sd, char* argument){
 		}else{
 			strcpy(filename,"archiviocompresso.tar.bz2");
 		}
+	}else if(strcmp(resp, "NO") == 0) {
+		fprintf(stderr, "Server responded with 'NO'. Add at least one file before compression.\n");
+		return;
+	}else {
+		fprintf(stderr, "ERROR: Unexpected response from the server: %s\n", resp);
+		exit(EXIT_FAILURE);  // o return;
 	}
+		
 	//qui else if ricevi no -> fai return
+		
 	//else messaggio non riconosciuto exit()
 
 
