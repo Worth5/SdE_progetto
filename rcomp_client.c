@@ -471,8 +471,12 @@ void compress(int sd, char* argument){
 			exit(EXIT_FAILURE);
 		}
 	}
-	fclose(myfile);
-        printf("File ricevuto: %s\n", filename);
+	
+	if (fclose(myfile) < 0) {
+	   fprintf(stderr, "Error closing the file: %s\n", strerror(errno));
+           exit(EXIT_FAILURE);
+	}
+        printf("File received: %s\n", filename);
 	//chiudere il file con controllo errore
 	//printf file ricevuto
 	
