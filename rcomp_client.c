@@ -438,6 +438,13 @@ void compress(int sd, char* argument){
 
 	//manca ricevere grandezza file
 	int file_size;
+        int rcvd_bytes = recv(conn_sd, &file_size, sizeof(file_size), 0);
+        if (rcvd_bytes < 0) {
+	   fprintf(stderr, "Error receiving file size: %s\n", strerror(errno));
+	   exit(EXIT_FAILURE);
+	}
+        file_size = ntohl(file_size);
+	printf("Received file size: %d bytes\n", file_size);
 	// recv() 
 	
 	/* questo blocco non serve perche sotto non stai usando stream per ricevere
