@@ -239,8 +239,8 @@ int fget_word(FILE* fd, char* str,int lenght_max){
 			return '\0'; //oltre lunghezza max
 		}
 		str[cont++]=(char)byte;
-		debug((char*)&byte,5);
-		debug("\n",5);
+		//debug((char*)&byte,5);
+		//debug("\n",0);
 	}
 
 	if (ferror(fd)||(cont==0)){
@@ -294,8 +294,7 @@ void help(){
 //////////////////////////////////////////////////
 
 void add(int sd, char* argument){
-	debug("add()_argument:",4);					//debug se printa sei nella funzione
-	debug(argument,4);
+	debug("add()_argument:",4);debug(argument,0);debug("\n");
 	
 	for(int i = 0; argument[i] != '\0'; i++){
 		if((argument[i] < 'A' || argument[i] > 'Z') && (argument[i] < 'a' || argument[i] > 'z') && (argument[i] < '0' || argument[i] > '9') && argument[i] != '.'){
