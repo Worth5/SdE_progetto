@@ -323,23 +323,25 @@ void add(int sd, char* argument){
 
 	//------------INVIO COMANDO AL SERVER---------------------//
 	char *str = "a";
-	if((snd_bytes = send(sd, str, strlen(str)+1, 0)) < 0){
+	if((snd_bytes = send(sd, str, strlen(str), 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	//il server si preoccupa di aggiungeere \0 alla fine
 
 	//------------INVIO LUNGHEZZA "FILE NAME"-----------------//
-	size_t file_name = htonl(strlen(argument)+1);
-	if((snd_bytes = send(sd, &file_name, sizeof(int), 0)) < 0){
+	size_t name_len = htonl(strlen(argument));
+	if((snd_bytes = send(sd, &name_len, sizeof(int), 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	
 	//-----------------INVIO "FILE NAME"----------------------//
-	if((snd_bytes = send(sd, argument, strlen(argument)+1, 0)) < 0){
+	if((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	//il server si preoccupa di aggiungeere \0 alla fine
 
 	//------------INVIO LUNGHEZZA----------------//
 
@@ -417,7 +419,8 @@ void compress(int sd, char* argument){
 			strcpy(filename,"archiviocompresso.tar.bz2");
 		}
 	}
-	//qui else ricevi no -> fai return
+	//qui else if ricevi no -> fai return
+	//else messaggio non riconosciuto exit()
 
 
 	FILE *myfile = fopen(filename, "wb");//b is telling stream to not convert things like \n but leave as '\' e 'n'
@@ -430,7 +433,8 @@ void compress(int sd, char* argument){
 	int file_size;
 	// recv() 
 	
-	/* qui apri stream associato a socket ma conviene usare direttamente socket (online è sconsigliato)
+	/* questo blocco non serve perche sotto non stai usando stream per ricevere
+	//online sconsigliano aprire stream dda socket anche se si può fare
 	FILE *socket_stream =fdopen(socked_descriptor, "r");
 	if ((soclet_stream = fopen(filename_in, "r")) == NULL){
 			fprintf(stderr,"ERROR while opening %s\n", filename_in); 
