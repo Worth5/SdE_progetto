@@ -15,6 +15,14 @@
 #define BUFFSIZE 4096
 #define PATH_MAX 4096
 
+#define DEBUG
+
+#ifdef DEBUG
+	#include <stdarg.h>
+	#define DEBUG_LVL 10
+	int debugIndent=0;
+#endif
+
 int sd;//globale per poterlo chiudere da signal handler
 
 char tempFolder[30];//parent, name assigned on runtime
@@ -42,22 +50,11 @@ int fread_from_fwrite_to(FILE *s_input, FILE *s_output, int size_to_write, char 
 // funzioni opzionali
 void progress_bar(int processed, int total, char *message);
 int extimate_archive_size(int dir_size);
-void debug(char *str, int level){	//stampa in verde messaggio debug
-	#ifdef DEBUG_LEVEL
-		if (DEBUG_LEVEL >= level){
-			while((--level)>0)fprintf(stderr,"\t");	//indenta level volte per visibilità
-			fprintf(stderr,"\033[0;33m%s\033[1;0m", str); //colore verde \033[1;32m colore normale \033[1;0m
-		}
-	#endif
-}
-void debug_int(int num, int lvl){//per printare interi
-	char c[11];
-	snprintf(c,11,"%d",num);
-	debug(c,lvl);
-}
+int debug(const char *str, ...);
 
 //signal handler
 void quit(int signo) {
+	debug("0quit()\n");
 	close(sd);//close 
 	chdir("..");
 	int len=sizeof(tempFolder) + sizeof("rm -r ") -1;
@@ -70,11 +67,10 @@ void quit(int signo) {
 //////////-----------------MAIN------------------/////////////
 
 int main(int argc, char *argv[]) {
-	debug("main()_start\n",1);
+	debug("\nmain()_start\n");
 	snprintf(tempFolder,30, "rcomp_server_temp_%d", getpid());
-	//create temp fold
-	//debug("",);
-	debug("main()_create_temp_folder\n",1);
+
+	debug("main()_create_temp_folder\n");
 	mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
 	if (mkdir(tempFolder, mode) < 0) {
 		fprintf(stderr, "Error creating directory: %s\n", strerror(errno));
@@ -90,20 +86,20 @@ int main(int argc, char *argv[]) {
 	sd = setup(argc, argv);  // crea socket imposta sockopt esegue bind e listen
 
     while (1) {
-		debug("main()_while(1)_manage clients\n",2);
+		debug("+main()_while(1)_manage clients\n");
 		int conn_sd = accept_client(sd);  // esegue connet e restituisce connection socket
 		int valid_input = 1;
 		char command[10] = "0";
 
         while (valid_input && (strcmp(command, "q")!=0)) {  // finche input è valido e diverso da "q"
-			debug("while()_manage_requests\n",3);
+			debug("+while()_manage_requests\n");
 
             if (recv(conn_sd, &command, 1, 0) < 0) {
                 fprintf(stderr, "Impossibile ricevere dati da socket: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
             }
 			command[1]='\0';
-			debug("recvd: '",3);debug(command,0);debug("'\n",0);
+			debug("request: '%s'\n",command);
 
             if (strcmp(command, "a")==0) {
 				printf("Received: add\n");
@@ -121,18 +117,20 @@ int main(int argc, char *argv[]) {
                 valid_input = 0;
                 printf("Invalid command detected(%s)\n",command);
             }
+			debug("-");
         }
         printf("Closing connection\n");
         close(conn_sd);
+		debug("-");
     }
-    close(sd);
-    return EXIT_SUCCESS;
+
+	debug("ERRORE:non dovresti essere qui");
 }
 
 ///////////////////////////////////////////////////
 
 int setup(int argc, char *argv[]) {  // create socket + socket opt + bind() return socket
-	debug("setup()\n",2);
+	debug("+setup()\n");
 
     int port_no = 1234;
     int port_pos = parse_argv_for_port(argc, argv);
@@ -166,7 +164,7 @@ int setup(int argc, char *argv[]) {  // create socket + socket opt + bind() retu
     setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuse_opt, sizeof(int));
 
     // --- BIND --- //
-	debug("setup()_bind()\n",3);
+	debug("setup()_bind()\n");
     if (bind(sd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {  // associazione indirizzo a socket
         fprintf(stderr, "Impossibile associare l'indirizzo a un socket: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
@@ -174,7 +172,7 @@ int setup(int argc, char *argv[]) {  // create socket + socket opt + bind() retu
     printf("Socket %d associato a %s:%d\n", sd, addr_str, port_no);
 
     // --- LISTENING --- //
-	debug("setup()_listen()\n",3);
+	debug("-setup()_listen()\n");
     if (listen(sd, 10) < 0) {
         fprintf(stderr, "Impossibile mettersi in attesa su socket: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
@@ -186,31 +184,32 @@ int setup(int argc, char *argv[]) {  // create socket + socket opt + bind() retu
 /////////////////////////////////////////////////////////////
 
 int parse_argv_for_port(int argc, char *argv[]) {
-    debug("parse_argv_for_port()\n",3);
+    debug("1parse_argv_for_port()\n",3);
     for (int j = 1; j < argc; j++) {
-        debug("arg\n",4);
+        debug("1argument:%d\n",j);
         int check = 1;
 
         for (int i = 0; argv[j][i] != '\0'; i++) {
             char c[3] = {i + '0', '\n', '\0'};
-            debug(c,5);
+            debug("1%c\n",c);
             if (argv[j][i] < '0' || argv[j][i] > '9') {
                 check = 0;
             }
-        }
+		}
+
         if (check) {
-            debug("\nvalid port found\n",4);
+            printf("valid port found\n");
             return j;
         }
     }
-    debug("\nno arg has valid port\n",3);
+    printf("no arg has valid port\n");
     return -1;
 }
 
 //////////////////////////////////////////////////////////////
 
 int accept_client(int sd) {
-	debug("accept_client()\n",3);
+	debug("+accept_client()\n");
     // --- ATTESA DI CONNESSIONE --- //
     printf("--- In attesa di connessione ---\n");
 
@@ -222,7 +221,7 @@ int accept_client(int sd) {
         fprintf(stderr, "Impossibile accettare connessione su socket: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-	debug("accept_client()_accepted\n",4);
+	debug("1accept_client()_accepted\n");
 
     // conversione dell'indirizzo in formato numerico
     char client_addr_str[INET_ADDRSTRLEN];
@@ -232,6 +231,7 @@ int accept_client(int sd) {
     }
 
     printf("Connesso al client %s:%d\n", client_addr_str, ntohs(client_addr.sin_port));
+	debug("-");
     return conn_sd;
 }
 
@@ -239,9 +239,9 @@ int accept_client(int sd) {
 
 void add(int conn_sd) {
     printf("Add request received\n");
-	debug("add()\n",4);
+	debug("+add()\n");
     // mkdir se dir non esiste
-	debug("add()_mkdir\n",4);
+	debug("add()_mkdir\n");
     mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
 	if (mkdir(recvFolder, mode) < 0) {
 		if(errno != EEXIST){
@@ -260,7 +260,7 @@ void add(int conn_sd) {
         exit(EXIT_FAILURE);
     }
     file_name_len = ntohl(file_name_len);
-	debug("add()_rcv_name_len:",4);debug_int(file_name_len,0);debug("\n",0);
+	debug("add()_rcv_name_len:%d\n",file_name_len);
 
     //ricevo stringa nome del file
     char filename[file_name_len];
@@ -269,7 +269,7 @@ void add(int conn_sd) {
         exit(EXIT_FAILURE);
     }
 	filename[file_name_len]='\0';
-	debug("add()_rcv_name:",4);debug(filename,0);debug("\n",0);
+	debug("add()_rcv_name:%s\n",filename);
 
     // check file gìà presente in questo caso non si fa niente e verrà sovrascritto
     struct stat file_info;
@@ -292,7 +292,7 @@ void add(int conn_sd) {
         exit(EXIT_FAILURE);
     }
     file_size = ntohl(file_size);
-	debug("add()_rcv_size:",4);debug_int(file_size,0);debug("\n",0);
+	debug("add()_rcv_size:%d\n",file_size);
 
     // ciclo recv from socket, write on file
     char buff[BUFFSIZE];
@@ -309,10 +309,10 @@ void add(int conn_sd) {
             exit(EXIT_FAILURE);
         }
         remaining_bytes -= rcvd_bytes;
-		debug("add()_while()_bytes_recv:",5);debug_int(file_size-remaining_bytes,0);debug("\r",0);
+		debug("add()_while()_bytes_recv:%d\r",file_size-remaining_bytes);
 		progress_bar(file_size-remaining_bytes,file_size,"Receiving file");
     }
-	debug("\n",0);
+	debug("-\n");
     printf("\nFile received and saved as: %s\n", filename);
 
     // Close the file descriptor
@@ -325,7 +325,7 @@ void add(int conn_sd) {
 
 void compress(int conn_sd, char *comp_type) {
     printf("Compress request received\n");
-	debug("compress()\n",4);
+	debug("+compress()\n");
     // children commands
     char tarCommand[50];
 	char compressCommand[50];
@@ -344,7 +344,7 @@ void compress(int conn_sd, char *comp_type) {
 	int dirSize = get_size(recvFolder);
 	if(dirSize<0){
 		int snd_bytes = send(conn_sd, "NO", 3, 0);// {'N','O','\0'}
-		debug("compress()_send_NO\n",5);
+		debug("1compress()_send_NO\n");
 		if (snd_bytes < 0) {
 			fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
@@ -353,7 +353,7 @@ void compress(int conn_sd, char *comp_type) {
 	}
 	else{
 		int snd_bytes = send(conn_sd, "OK", 2, 0);
-		debug("compress()_send_OK\n",5);
+		debug("1compress()_send_OK\n");
 		if (snd_bytes < 0) {
 			fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
@@ -362,7 +362,7 @@ void compress(int conn_sd, char *comp_type) {
     printf("UncompressedSize: %ld\n", dirSize);
 	int archiveExtimate=extimate_archive_size(dirSize);//get extimate of archive size to use for progress bar
 
-	debug("compress()_create children\n",4);
+	debug("compress()_create children\n");
 	//ho separato il comando in due per poter printare una progress bar
 	FILE *tarStream= popen(tarCommand,"r");
 	FILE *compressStream= popen(compressCommand,"w");
@@ -370,7 +370,7 @@ void compress(int conn_sd, char *comp_type) {
 	fclose(tarStream);
 	fclose(compressStream);
 
-	debug("compress()_wait()\n",4);
+	debug("compress()_wait()\n");
 	//faccio una wait per aspettare che i processi figli abbiano terminato
 	while(wait(NULL) > 0);
 	if(errno!=ECHILD){//errore no figli 
@@ -387,7 +387,7 @@ void compress(int conn_sd, char *comp_type) {
 		fprintf(stderr, "Error sending data: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	debug("compress()_send_compressed_size:",4);debug_int(compressedSize,0);debug("\n",4);
+	debug("compress()_send_compressed_size:%d",compressedSize);
 
 	FILE *zip = fopen(compressedFile,"r");
 	// mando file
@@ -400,13 +400,14 @@ void compress(int conn_sd, char *comp_type) {
 			exit(EXIT_FAILURE);
 		}
 		total_sent+=snd_bytes;
-		debug("compress()_file_total_sent:",5);debug_int(total_sent,0);debug("\r",0);
+		debug("1compress()_file_total_sent:%s\r",total_sent);
 		progress_bar(total_sent,compressedSize,"Sending");
 	}
 	printf("\n");
-	debug("\n",5);
+	debug("\n");
 	fclose(zip);
 
+	debug("-compress()_remove_files");
 	//rimuovo cartella con file ricevuti
 	printf("Removing uncompressed files\n");
 	int len=sizeof(recvFolder) + sizeof("rm -r ") -1;
@@ -419,7 +420,7 @@ void compress(int conn_sd, char *comp_type) {
 /////////////////////////////////////////////////////////////////////////////
 
 int get_size(char *path) {
-	debug("get_size()\n",5);
+	debug("+get_size()\n");
     // controllo che file esista
     struct stat fileStat;
     if (stat(path, &fileStat) == -1) {
@@ -434,13 +435,13 @@ int get_size(char *path) {
     }
 
 	if(S_ISREG(fileStat.st_mode)){ //se file è file regolare ritorno dimensione
-		debug("get_size()_ISREG",6);
-		debug("\tsize: ",0);debug_int(fileStat.st_size,0);debug("\n",0);
+		debug("get_size()_ISREG");
+		debug("- size: %d\n",fileStat.st_size);
 		return fileStat.st_size;
 	}
 
 	else if(S_ISDIR(fileStat.st_mode)){//se file è directory scorri elementi
-		debug("get_size()_ISDIR\n",6);
+		debug("get_size()_ISDIR\n");
 		DIR *dp = opendir(path);
 		if (dp == NULL) {
 			printf("Can't open directory '%s': %s", path, strerror(errno));
@@ -458,7 +459,7 @@ int get_size(char *path) {
 		// readdir()  -> dirent numero 1 ->[puntatore a i-node, nomefile]
     	// readdir() -> dirent nomero 2 ->
 		while ((dirp = readdir(dp)) != NULL) {
-			debug(dirp->d_name,7);debug("\n",0);
+			debug("dir: %s\n",dirp->d_name);
 			if ((strcmp(dirp->d_name, ".") == 0) || (strcmp(dirp->d_name, "..") == 0)){//dir ignora se stessa e genitore
                 continue;//va a prox ciclo
 			}
@@ -472,6 +473,7 @@ int get_size(char *path) {
 			
 		}
     closedir(dp);
+	debug("-");
     return total_size;
 	}
 }
@@ -479,14 +481,14 @@ int get_size(char *path) {
 ////////////////////////////////////////////////////
 
 int fread_from_fwrite_to(FILE *s_input, FILE *s_output, int size_to_write, char *progress_bar_message) {
-
+	debug("+read_from_write_to()\n");
     char buffer[BUFFSIZE];
     int bytes_read;
     int total_read = 0;
 
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), s_input)) > 0) {
         // printf("bytes_read: %d \n", bytes_read);
-
+		
         int bytes_written = fwrite(buffer, 1, bytes_read, s_output);
 
         // printf("bytes_written: %d \n", bytes_written);
@@ -497,6 +499,7 @@ int fread_from_fwrite_to(FILE *s_input, FILE *s_output, int size_to_write, char 
             fprintf(stderr, "ERROR accessing file: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
+		debug("1while()_total_read:%d\r",total_read);
         if (size_to_write) {
             progress_bar(total_read, size_to_write, progress_bar_message);
         }
@@ -509,6 +512,7 @@ int fread_from_fwrite_to(FILE *s_input, FILE *s_output, int size_to_write, char 
     if (size_to_write) {
         printf("\n");  // per avere \n dopo progress bar
     }
+	debug("-\n");
     // return filesize;
     return total_read;
 }
@@ -516,9 +520,8 @@ int fread_from_fwrite_to(FILE *s_input, FILE *s_output, int size_to_write, char 
 /////////////////////////////////////////////////////////////////////////
 
 void progress_bar(int processed, int total, char *message) {
-	printf(message);
     int progress = (int)((processed / (float)total) * 100);
-    printf("%s -> progress: [%d%%] ->", message, progress);//  %d per intero  %% per scrivere "%"  -> "message progress:[n%]
+    printf("%s progress: [%d%%] ->", message, progress);//  %d per intero  %% per scrivere "%"  -> "message progress:[n%]
 	printf(" processed= %ld\r", processed); 
     fflush(stdout);
 }
@@ -526,12 +529,93 @@ void progress_bar(int processed, int total, char *message) {
 ///////////////////////////////////////////////7
 
 int extimate_archive_size(int dir_size) {  // ricavata a tentativi per ora corretta
-	debug("extimate_archive_size()\n",5);
+	debug("1extimate_archive_size()\n",5);
     int expected_size = dir_size - (dir_size % 10240) + 10240;
     if ((dir_size % 10240) <= 8192)
         return expected_size;
     else
         return expected_size + 10240;
 }
+
+
+
+
+
+int debug(const char *format, ...)
+{
+	#ifdef DEBUG
+    va_list args;
+    va_start(args, format);
+
+	int indent=0;
+	
+	if(*format!=0)switch(*format){
+
+	case '+':
+		indent=(++debugIndent);
+		break;
+	case '-':
+		indent=debugIndent>0?debugIndent--:0;
+		break;
+	case '1':
+		indent=debugIndent+1;
+		break;
+	case '0':
+		break;
+	default:
+		indent=debugIndent;
+		format--;
+		break;
+	}
+	format++;
+	if(*format!='\0')while((indent--)>0)fprintf(stderr,"\t");
+	fprintf(stderr,"\033[1;33m");
+    int count = 0;
+    while (*format != '\0')
+    {
+
+        if (*format != '%')
+        {
+            fputc(*format,stderr);
+            count++;
+        }
+        else
+        {
+            // Handle format specifiers
+            switch (*++format)
+            {
+			//funzionalità base printf
+            case 'd':
+                count += fprintf(stderr, "%d", va_arg(args, int));
+                break;
+            case 'c':
+                count +=fputc(va_arg(args, int),stderr);
+                break;
+            case 's':
+                count += fprintf(stderr, "%s", va_arg(args, char *));
+                break;
+            case 'f':
+                count += fprintf(stderr, "%f", va_arg(args, double));
+                break;
+			case '%':
+				fputc('%',stderr);  
+				count++;
+				break;
+            default:
+                // Handle unknown format specifiers
+                fputc('%',stderr);
+                fputc(*format,stderr);
+                count += 2;
+                break;
+            }
+        }
+        format++;
+    }
+	fprintf(stderr,"\033[1;0m");
+    va_end(args);
+    return count;
+	#endif
+}
+
 
 
