@@ -1,2 +1,4 @@
 
 .vscode
+rcomp_serverw.c
+debug.c
