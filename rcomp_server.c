@@ -352,7 +352,7 @@ void compress(int conn_sd, char *comp_type) {
 		return;
 	}
 	else{
-		int snd_bytes = send(conn_sd, "OK", 2, 0);
+		int snd_bytes = send(conn_sd, "OK", 3, 0);
 		debug("compress()_send_OK\n",5);
 		if (snd_bytes < 0) {
 			fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
