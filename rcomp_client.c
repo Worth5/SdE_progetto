@@ -294,7 +294,7 @@ void help(){
 //////////////////////////////////////////////////
 
 void add(int sd, char* argument){
-	debug("add()_argument:",4);debug(argument,0);debug("\n");
+	debug("add()_argument:",4);debug(argument,0);debug("\n",0);
 	
 	for(int i = 0; argument[i] != '\0'; i++){
 		if((argument[i] < 'A' || argument[i] > 'Z') && (argument[i] < 'a' || argument[i] > 'z') && (argument[i] < '0' || argument[i] > '9') && argument[i] != '.'){
@@ -374,7 +374,7 @@ void add(int sd, char* argument){
 
 void compress(int sd, char* argument){
 	debug("compress()_argument:\n",4);				//debug se printa sei nella funzione
-	debug(argument,4);
+	debug(argument,0);debug("\n",0);
 	ssize_t rcvd_bytes, snd_bytes;
 
 	if (strcmp(argument, "z") == 0 || strcmp(argument, "j") == 0){ 
@@ -397,19 +397,12 @@ void compress(int sd, char* argument){
 	// --- RICEZIONE RISPOSTA --- //
 	char resp[3];
 	rcvd_bytes = recv(sd, &resp, 2, 0);
-	if (rcvd_bytes < 0)
-	{	//qui è fallita la ricezione che è divrso all'aver ricevuto "NO"
-		fprintf(stderr, "ERRORE: aggiungere almeno un file prima di effettuare la compressione: %s\n", strerror(errno));
+	if (rcvd_bytes < 0){
+		fprintf(stderr, "ERRORE: impossibile ricevere dati: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-
-
-
-	//mi aspetto dal server OK oppure NO 
-	//attenzione manca uscita dalla funzione (return;) in caso NO
-	//manca exit(EXIT_FAILURE) in caso ricezione messaggio inaspettato che non è ne OK ne NO (opzionale)
-
 	resp[rcvd_bytes] = '\0';
+
 	char filename[30];
 	if (strcmp(resp, "OK") == 0) {
 		if (strcmp(argument, "z") == 0){
@@ -417,46 +410,34 @@ void compress(int sd, char* argument){
 		}else{
 			strcpy(filename,"archiviocompresso.tar.bz2");
 		}
+		printf("Server replied with OK\nReady to receive: '%s'\n",filename);
 	}else if(strcmp(resp, "NO") == 0) {
-		fprintf(stderr, "Server responded with 'NO'. Add at least one file before compression.\n");
+		printf("Server responded with 'NO'.\n Add at least one file before compression.\n");
 		return;
 	}else {
 		fprintf(stderr, "ERROR: Unexpected response from the server: %s\n", resp);
 		exit(EXIT_FAILURE);  // o return;
 	}
-		
-	//qui else if ricevi no -> fai return
-		
-	//else messaggio non riconosciuto exit()
-
 
 	FILE *myfile = fopen(filename, "wb");//b is telling stream to not convert things like \n but leave as '\' e 'n'
 	if (myfile == NULL) {
-		fprintf(stderr, "Errore: Impossibile aprire il file per la ricezione\n");
+		fprintf(stderr, "Errore: Impossibile aprire il file: %s\n",strerror(errno));
 			exit(EXIT_FAILURE);
 	}
+	chmod(filename,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
 
-	//manca ricevere grandezza file
+	
 	int file_size;
-        int rcvd_bytes2 = recv(conn_sd, &file_size, sizeof(file_size), 0);
+        int rcvd_bytes2 = recv(sd, &file_size, sizeof(file_size), 0);
         if (rcvd_bytes2 < 0) {
            fprintf(stderr, "Error receiving file size: %s\n", strerror(errno));
            exit(EXIT_FAILURE);
 	}
-        file_size = ntohl(file_size);
+    file_size = ntohl(file_size);
 	printf("Received file size: %d bytes\n", file_size);
-	// recv() 
 	
-	/* questo blocco non serve perche sotto non stai usando stream per ricevere
-	//online sconsigliano aprire stream dda socket anche se si può fare
-	FILE *socket_stream =fdopen(socked_descriptor, "r");
-	if ((soclet_stream = fopen(filename_in, "r")) == NULL){
-			fprintf(stderr,"ERROR while opening %s\n", filename_in); 
-			exit(EXIT_FAILURE);
-	}
-	*/
 
-	//manca controllo errore su recv()
+
 	const int BUFFSIZE=4096;
 	char buffer[BUFFSIZE];
 	size_t bytes_read;
@@ -476,10 +457,9 @@ void compress(int sd, char* argument){
 	   fprintf(stderr, "Error closing the file: %s\n", strerror(errno));
            exit(EXIT_FAILURE);
 	}
-        printf("File received: %s\n", filename);
-	//chiudere il file con controllo errore
-	//printf file ricevuto
-	
+    
+	printf("File received: %s\n", filename);
+
 }
 
 //////////////////////////////////////////////////
