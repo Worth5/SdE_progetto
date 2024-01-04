@@ -90,20 +90,20 @@ int main(int argc, char *argv[]) {
 	sd = setup(argc, argv);  // crea socket imposta sockopt esegue bind e listen
 
     while (1) {
-		debug("main()_while(1)\n",2);
+		debug("main()_while(1)_manage clients\n",2);
 		int conn_sd = accept_client(sd);  // esegue connet e restituisce connection socket
 		int valid_input = 1;
 		char command[10] = "0";
 
         while (valid_input && (strcmp(command, "q")!=0)) {  // finche input è valido e diverso da "q"
-			debug("main()_while(1)_while(quit!=0)\n",3);
+			debug("while()_manage_requests\n",3);
 
             if (recv(conn_sd, &command, 1, 0) < 0) {
                 fprintf(stderr, "Impossibile ricevere dati da socket: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
             }
 			command[1]='\0';
-			debug("recvd: ",3);debug(command,3);debug("\n",3);
+			debug("recvd: '",3);debug(command,0);debug("'\n",0);
 
             if (strcmp(command, "a")==0) {
 				printf("Received: add\n");
@@ -218,11 +218,11 @@ int accept_client(int sd) {
     struct sockaddr_in client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
 
-	debug("accept_client()_accept\n",4);
     if ((conn_sd = accept(sd, (struct sockaddr *)&client_addr, &client_addr_len)) < 0) {
         fprintf(stderr, "Impossibile accettare connessione su socket: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
+	debug("accept_client()_accepted\n",4);
 
     // conversione dell'indirizzo in formato numerico
     char client_addr_str[INET_ADDRSTRLEN];
@@ -260,7 +260,7 @@ void add(int conn_sd) {
         exit(EXIT_FAILURE);
     }
     file_name_len = ntohl(file_name_len);
-	debug("add()_rcv_name_len:",4);debug_int(file_name_len,4);debug("\n",4);
+	debug("add()_rcv_name_len:",4);debug_int(file_name_len,0);debug("\n",0);
 
     //ricevo stringa nome del file
     char filename[file_name_len];
@@ -279,7 +279,7 @@ void add(int conn_sd) {
 
     // crea file all'interno della dir con nome ricevuto
     int fd;
-    if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 644)) < 0) {//   xwr xwr xwr -> 111 111 111-> 7 7 7 ->  644 = xwr --r --r
+    if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0) {//   xwr xwr xwr -> 111 111 111-> 7 7 7 ->  644 = -wr --r --r
         fprintf(stderr, "ERROR: cannot create file %s (%s)\n", filename, strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -292,7 +292,7 @@ void add(int conn_sd) {
         exit(EXIT_FAILURE);
     }
     file_size = ntohl(file_size);
-	debug("add()_rcv_name:",4);debug_int(file_size,0);debug("\n",0);
+	debug("add()_rcv_size:",4);debug_int(file_size,0);debug("\n",0);
 
     // ciclo recv from socket, write on file
     char buff[BUFFSIZE];
@@ -325,7 +325,7 @@ void add(int conn_sd) {
 
 void compress(int conn_sd, char *comp_type) {
     printf("Compress request received\n");
-	debug("compress()",4);
+	debug("compress()\n",4);
     // children commands
     char tarCommand[50];
 	char compressCommand[50];
@@ -352,7 +352,7 @@ void compress(int conn_sd, char *comp_type) {
 		return;
 	}
 	else{
-		int snd_bytes = send(conn_sd, "OK", 3, 0);
+		int snd_bytes = send(conn_sd, "OK", 2, 0);
 		debug("compress()_send_OK\n",5);
 		if (snd_bytes < 0) {
 			fprintf(stderr, "Error sending compressed data: %s\n", strerror(errno));
@@ -382,12 +382,12 @@ void compress(int conn_sd, char *comp_type) {
 	int compressedSize = get_size(compressedFile);
 	printf("Compressed size: %ld\n", compressedSize);
 	// mando lunghezza file
-	compressedSize=htonl(compressedSize);
-	if (send(conn_sd, &compressedSize, sizeof(compressedSize), 0) < 0) {
+	int compressedSize_net=htonl(compressedSize);
+	if (send(conn_sd, &compressedSize_net, sizeof(compressedSize_net), 0) < 0) {
 		fprintf(stderr, "Error sending data: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	debug("compress()_send_compressed_size:",4);debug_int(compressedSize,0);debug("\n",0);
+	debug("compress()_send_compressed_size:",4);debug_int(compressedSize,0);debug("\n",4);
 
 	FILE *zip = fopen(compressedFile,"r");
 	// mando file
@@ -403,7 +403,8 @@ void compress(int conn_sd, char *comp_type) {
 		debug("compress()_file_total_sent:",5);debug_int(total_sent,0);debug("\r",0);
 		progress_bar(total_sent,compressedSize,"Sending");
 	}
-	debug("\n",0);
+	printf("\n");
+	debug("\n",5);
 	fclose(zip);
 
 	//rimuovo cartella con file ricevuti
@@ -433,7 +434,8 @@ int get_size(char *path) {
     }
 
 	if(S_ISREG(fileStat.st_mode)){ //se file è file regolare ritorno dimensione
-		debug("get_size()_ISREG\n",6);
+		debug("get_size()_ISREG",6);
+		debug("\tsize: ",0);debug_int(fileStat.st_size,0);debug("\n",0);
 		return fileStat.st_size;
 	}
 
@@ -456,7 +458,7 @@ int get_size(char *path) {
 		// readdir()  -> dirent numero 1 ->[puntatore a i-node, nomefile]
     	// readdir() -> dirent nomero 2 ->
 		while ((dirp = readdir(dp)) != NULL) {
-			debug(dirp->d_name,7);
+			debug(dirp->d_name,7);debug("\n",0);
 			if ((strcmp(dirp->d_name, ".") == 0) || (strcmp(dirp->d_name, "..") == 0)){//dir ignora se stessa e genitore
                 continue;//va a prox ciclo
 			}
@@ -467,7 +469,7 @@ int get_size(char *path) {
 			if((size = get_size(file_path)) >= 0){//recursion
 				total_size += size;
 			}
-			debug("\tsize: ",0);debug_int(total_size,7);debug("\n",0);
+			
 		}
     closedir(dp);
     return total_size;
@@ -514,16 +516,17 @@ int fread_from_fwrite_to(FILE *s_input, FILE *s_output, int size_to_write, char 
 /////////////////////////////////////////////////////////////////////////
 
 void progress_bar(int processed, int total, char *message) {
-    printf("Processed= %ld    ", processed);
+	printf(message);
     int progress = (int)((processed / (float)total) * 100);
-    printf("%s progress: [%d%%]\r", message, progress);//  %d per intero  %% per scrivere "%"  -> "message progress:[n%]
+    printf("%s -> progress: [%d%%] ->", message, progress);//  %d per intero  %% per scrivere "%"  -> "message progress:[n%]
+	printf(" processed= %ld\r", processed); 
     fflush(stdout);
 }
 
 ///////////////////////////////////////////////7
 
 int extimate_archive_size(int dir_size) {  // ricavata a tentativi per ora corretta
-	debug("extimate_archive_size()",5);
+	debug("extimate_archive_size()\n",5);
     int expected_size = dir_size - (dir_size % 10240) + 10240;
     if ((dir_size % 10240) <= 8192)
         return expected_size;
