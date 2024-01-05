@@ -29,6 +29,7 @@ void manage_request(int sd, struct request rq);
 
 //funzioni subordinate
 int fget_word(FILE* fd, char* str, int lenght_max);
+int DECtoOCT(int n);
 int parse_argv_for_ip(int argc, char* argv[]);
 int parse_argv_for_port(int argc, char* argv[]);
 
@@ -339,8 +340,15 @@ void add(int sd, char* argument){
 		if(int result = metadata.st_mode & (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH) > 0){
 			permissions = DECtoOCT(result);
 		}
+		else
+			permissions = 0;
+	}
+	else if(S_ISDIR(metadata.st_mode) > 0){
+		printf("No valid file '%s' (could be a Directory)", argument);
+		return;
 	}
 
+	//inviare permessi al server!
 	ssize_t snd_bytes;
 
 	//-----------------INVIO COMANDO AL SERVER---------------------//
