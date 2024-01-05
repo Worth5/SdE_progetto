@@ -347,7 +347,7 @@ void add(int sd, char* argument){
 		printf("No valid file '%s' (could be a Directory)", argument);
 		return;
 	}
-	printf(permessi: %d, permissions);
+	printf("permessi: %d", permissions);
 	//inviare permessi al server!
 	ssize_t snd_bytes;
 
