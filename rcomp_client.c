@@ -334,10 +334,11 @@ void add(int sd, char* argument){
 		exit(EXIT_FAILURE);
 	}
 	off_t file_size = metadata.st_size;			//ricavo dimensione del file da inviare
-	
+
+	int result;
 	mode_t permissions;
 	if(S_ISREG(metadata.st_mode) > 0){
-		if(int result = metadata.st_mode & 0777 > 0){
+		if((result = metadata.st_mode & 0777) > 0){
 			permissions = DECtoOCT(result);
 		}
 		else
