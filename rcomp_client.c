@@ -255,6 +255,22 @@ int fget_word(FILE* fd, char* str,int lenght_max){
 
 //////////////////////////////////////////////////
 
+int DECtoOCT(int n){
+	char OCTnum[4];  // {'?', '?', '?', '\0'}
+
+	OCTnum[0] = '\0';
+	int i = 1;
+	while(n != 0){
+		OCTnum[i] = n % 8;
+		n = n / 8;
+		i++;
+	}
+
+	return atoi(OCTnum);
+}
+
+//////////////////////////////////////////////////
+
 void manage_request(int sd, struct request rq){
 	debug("manage_request()\n",3);	
 	if(strcmp(rq.command,"help") == 0){
@@ -321,7 +337,7 @@ void add(int sd, char* argument){
 	mode_t permissions;
 	if(S_ISREG(metadata.st_mode) > 0){
 		if(int result = metadata.st_mode & (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH) > 0){
-			DECtoOCT(result);
+			permissions = DECtoOCT(result);
 		}
 	}
 
