@@ -316,11 +316,18 @@ void add(int sd, char* argument){
 		fprintf(stderr, "ERROR: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	off_t file_size = metadata.st_size;
+	off_t file_size = metadata.st_size;			//ricavo dimensione del file da inviare
+	
+	mode_t permissions;
+	if(S_ISREG(metadata.st_mode) > 0){
+		if(int result = metadata.st_mode & (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH) > 0){
+			DECtoOCT(result);
+		}
+	}
 
 	ssize_t snd_bytes;
 
-	//------------INVIO COMANDO AL SERVER---------------------//
+	//-----------------INVIO COMANDO AL SERVER---------------------//
 	char *str = "a";
 	if((snd_bytes = send(sd, str, strlen(str), 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
