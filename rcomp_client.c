@@ -337,7 +337,7 @@ void add(int sd, char* argument){
 	
 	mode_t permissions;
 	if(S_ISREG(metadata.st_mode) > 0){
-		if(int result = metadata.st_mode & (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH) > 0){
+		if(int result = metadata.st_mode & 0777 > 0){
 			permissions = DECtoOCT(result);
 		}
 		else
@@ -347,7 +347,7 @@ void add(int sd, char* argument){
 		printf("No valid file '%s' (could be a Directory)", argument);
 		return;
 	}
-
+	printf(permessi: %d, permissions);
 	//inviare permessi al server!
 	ssize_t snd_bytes;
 
