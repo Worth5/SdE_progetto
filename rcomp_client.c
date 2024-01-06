@@ -321,7 +321,7 @@ void add(int sd, char* argument){
 	mode_t permissions;							//ricavo i permessi del file da inviare
 	if(S_ISREG(metadata.st_mode) > 0){
 		if((permissions = metadata.st_mode & 0777) > 0){
-			printf("Permessi file %s: %o", argument, permissions);
+			printf("Permessi file %s: %o\n", argument, permissions);
 		}
 		else
 			permissions = 0;
