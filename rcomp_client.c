@@ -29,7 +29,6 @@ void manage_request(int sd, struct request rq);
 
 //funzioni subordinate
 int fget_word(FILE* fd, char* str, int lenght_max);
-int DECtoOCT(int n);
 int parse_argv_for_ip(int argc, char* argv[]);
 int parse_argv_for_port(int argc, char* argv[]);
 
@@ -256,22 +255,6 @@ int fget_word(FILE* fd, char* str,int lenght_max){
 
 //////////////////////////////////////////////////
 
-int DECtoOCT(int n){
-	char OCTnum[4];  // {'?', '?', '?', '\0'}
-
-	OCTnum[0] = '\0';
-	int i = 1;
-	while(n != 0){
-		OCTnum[i] = n % 8;
-		n = n / 8;
-		i++;
-	}
-
-	return atoi(OCTnum);
-}
-
-//////////////////////////////////////////////////
-
 void manage_request(int sd, struct request rq){
 	debug("manage_request()\n",3);	
 	if(strcmp(rq.command,"help") == 0){
@@ -335,11 +318,10 @@ void add(int sd, char* argument){
 	}
 	off_t file_size = metadata.st_size;			//ricavo dimensione del file da inviare
 
-	int result;
-	mode_t permissions;
+	mode_t permissions;							//ricavo i permessi del file da inviare
 	if(S_ISREG(metadata.st_mode) > 0){
-		if((result = metadata.st_mode & 0777) > 0){
-			permissions = DECtoOCT(result);
+		if((permissions = metadata.st_mode & 0777) > 0){
+			printf("Permessi file %s: %o", argument, permissions);
 		}
 		else
 			permissions = 0;
@@ -348,8 +330,7 @@ void add(int sd, char* argument){
 		printf("No valid file '%s' (could be a Directory)", argument);
 		return;
 	}
-	printf("permessi: %d \n", permissions);
-	//inviare permessi al server!
+	
 	ssize_t snd_bytes;
 
 	//-----------------INVIO COMANDO AL SERVER---------------------//
@@ -367,12 +348,19 @@ void add(int sd, char* argument){
 		exit(EXIT_FAILURE);
 	}
 	
-	//-----------------INVIO "FILE NAME"----------------------//
+	//------------------INVIO "FILE NAME"----------------------//
 	if((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	//il server si preoccupa di aggiungeere \0 alla fine
+
+	//-------------------INVIO PERMESSI------------------------//
+	mode_t permissions_n = htonl(permissions);
+	if((snd_bytes = send(sd, &permissions_n, sizeof(mode_t), 0)) < 0){
+		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 	//------------INVIO LUNGHEZZA----------------//
 
