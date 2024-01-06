@@ -268,12 +268,12 @@ void add(int conn_sd) {
 
     // ricevo mode file (permissions and type of file)
     mode_t fileMode;
-    if (recv(conn_sd, &fileMode, sizeof(fileMode), 0) < 0) {
+	int temp;
+    if (recv(conn_sd, &temp, sizeof(temp), 0) < 0) {
         fprintf(stderr, "Error receiving file mode: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    fileMode = ntohl(fileMode);
-    fileMode = fileMode & 0777;
+    fileMode = ntohl(temp)&0777;
     debug("add()_rcv_name:%d\n", fileMode);
 
     // check file gìà presente in questo caso non si fa niente e verrà sovrascritto
@@ -320,8 +320,8 @@ void add(int conn_sd) {
     debug("-\n");
     printf("\nFile received and saved as: %s\n", fileName);
 
-    // Close the file descriptor
 
+    // Close the file descriptor
     close(fd);
     chdir("..");  // gestione errore?
 }

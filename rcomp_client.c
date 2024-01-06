@@ -311,6 +311,8 @@ void add(int sd, char* argument){
 		exit(EXIT_FAILURE);
 	}
 	
+
+
 	struct stat metadata;
 	if(stat(argument, &metadata) < 0){
 		fprintf(stderr, "ERROR: %s\n", strerror(errno));
@@ -318,13 +320,12 @@ void add(int sd, char* argument){
 	}
 	off_t file_size = metadata.st_size;			//ricavo dimensione del file da inviare
 
-	mode_t permissions;							//ricavo i permessi del file da inviare
-	if(S_ISDIR(metadata.st_mode) > 0){
-		printf("No valid file '%s' (could be a Directory)\n", argument);
+	int permissions;							//ricavo i permessi del file da inviare
+	if(S_ISREG(metadata.st_mode) < 0){
+		printf("Error: '%s' is not a regular file (could be a Directory)\n", argument);
 		return;
 	}
-	else
-		permissions = metadata.st_mode;
+	permissions = metadata.st_mode&0777;
 	
 	ssize_t snd_bytes;
 
@@ -351,8 +352,8 @@ void add(int sd, char* argument){
 	//il server si preoccupa di aggiungeere \0 alla fine
 
 	//-------------------INVIO PERMESSI------------------------//
-	mode_t permissions_n = htonl(permissions);
-	if((snd_bytes = send(sd, &permissions_n, sizeof(mode_t), 0)) < 0){
+	permissions = htonl(permissions);
+	if((snd_bytes = send(sd, &permissions, sizeof(mode_t), 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
