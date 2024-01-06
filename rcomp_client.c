@@ -256,7 +256,7 @@ int fget_word(FILE* fd, char* str,int lenght_max){
 
 //////////////////////////////////////////////////
 
-/*int DECtoOCT(int n){
+int DECtoOCT(int n){
 	char OCTnum[4];  // {'?', '?', '?', '\0'}
 
 	OCTnum[0] = '\0';
@@ -269,7 +269,7 @@ int fget_word(FILE* fd, char* str,int lenght_max){
 
 	return atoi(OCTnum);
 }
-*/
+
 //////////////////////////////////////////////////
 
 void manage_request(int sd, struct request rq){
@@ -335,12 +335,11 @@ void add(int sd, char* argument){
 	}
 	off_t file_size = metadata.st_size;			//ricavo dimensione del file da inviare
 
-	mode_t result;
+	int result;
 	mode_t permissions;
 	if(S_ISREG(metadata.st_mode) > 0){
 		if((result = metadata.st_mode & 0777) > 0){
-			//permissions = DECtoOCT(result);
-			permissions = result;
+			permissions = DECtoOCT(result);
 		}
 		else
 			permissions = 0;
@@ -349,7 +348,7 @@ void add(int sd, char* argument){
 		printf("No valid file '%s' (could be a Directory)", argument);
 		return;
 	}
-	printf("permessi: %d", permissions);
+	printf("permessi: %d \n", permissions);
 	//inviare permessi al server!
 	ssize_t snd_bytes;
 
