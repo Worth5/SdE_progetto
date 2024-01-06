@@ -335,7 +335,7 @@ void add(int sd, char* argument){
 	}
 	off_t file_size = metadata.st_size;			//ricavo dimensione del file da inviare
 
-	//int result;
+	mode_t result;
 	mode_t permissions;
 	if(S_ISREG(metadata.st_mode) > 0){
 		if((result = metadata.st_mode & 0777) > 0){
