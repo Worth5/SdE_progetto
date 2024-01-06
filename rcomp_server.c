@@ -272,7 +272,7 @@ void add(int conn_sd) {
         fprintf(stderr, "Error receiving file mode: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    fileMode = htonl(fileMode);
+    fileMode = ntohl(fileMode);
     fileMode = fileMode & 0777;
     debug("add()_rcv_name:%d\n", fileMode);
 
