@@ -319,17 +319,12 @@ void add(int sd, char* argument){
 	off_t file_size = metadata.st_size;			//ricavo dimensione del file da inviare
 
 	mode_t permissions;							//ricavo i permessi del file da inviare
-	if(S_ISREG(metadata.st_mode) > 0){
-		if((permissions = metadata.st_mode & 0777) > 0){
-			printf("Permessi file %s: %o\n", argument, permissions);
-		}
-		else
-			permissions = 0;
-	}
-	else if(S_ISDIR(metadata.st_mode) > 0){
-		printf("No valid file '%s' (could be a Directory)", argument);
+	if(S_ISDIR(metadata.st_mode) > 0){
+		printf("No valid file '%s' (could be a Directory)\n", argument);
 		return;
 	}
+	else
+		permissions = metadata.st_mode;
 	
 	ssize_t snd_bytes;
 
