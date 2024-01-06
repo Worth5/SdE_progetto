@@ -318,7 +318,7 @@ void add(int conn_sd) {
         progress_bar(file_size - remaining_bytes, file_size, "Receiving file");
     }
     debug("-\n");
-    printf("\nFile received and saved as: %s\n", filename);
+    printf("\nFile received and saved as: %s\n", fileName);
 
     // Close the file descriptor
 
