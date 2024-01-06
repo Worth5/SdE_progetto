@@ -256,7 +256,7 @@ int fget_word(FILE* fd, char* str,int lenght_max){
 
 //////////////////////////////////////////////////
 
-int DECtoOCT(int n){
+/*int DECtoOCT(int n){
 	char OCTnum[4];  // {'?', '?', '?', '\0'}
 
 	OCTnum[0] = '\0';
@@ -269,7 +269,7 @@ int DECtoOCT(int n){
 
 	return atoi(OCTnum);
 }
-
+*/
 //////////////////////////////////////////////////
 
 void manage_request(int sd, struct request rq){
@@ -335,11 +335,12 @@ void add(int sd, char* argument){
 	}
 	off_t file_size = metadata.st_size;			//ricavo dimensione del file da inviare
 
-	int result;
+	//int result;
 	mode_t permissions;
 	if(S_ISREG(metadata.st_mode) > 0){
 		if((result = metadata.st_mode & 0777) > 0){
-			permissions = DECtoOCT(result);
+			//permissions = DECtoOCT(result);
+			permissions = result;
 		}
 		else
 			permissions = 0;
