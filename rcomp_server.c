@@ -284,7 +284,7 @@ void add(int conn_sd) {
 
     // crea file all'interno della dir con nome ricevuto
     int fd;
-    if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, fileMode)) < 0) {  //   xwr xwr xwr -> 111 111 111-> 7 7 7 ->  644 = -wr --r --r
+    if ((fd = open(fileName, O_WRONLY | O_CREAT | O_TRUNC, fileMode)) < 0) {  
         fprintf(stderr, "ERROR: cannot create file %s (%s)\n", filename, strerror(errno));
         exit(EXIT_FAILURE);
     }
