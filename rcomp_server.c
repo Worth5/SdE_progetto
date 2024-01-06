@@ -268,12 +268,12 @@ void add(int conn_sd) {
 
     // ricevo mode file (permissions and type of file)
     mode_t fileMode;
-	int temp;
+    int temp;
     if (recv(conn_sd, &temp, sizeof(temp), 0) < 0) {
         fprintf(stderr, "Error receiving file mode: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    fileMode = ntohl(temp)&0777;
+    fileMode = ntohl(temp) & 0777;
     debug("add()_rcv_name:%d\n", fileMode);
 
     // check file gìà presente in questo caso non si fa niente e verrà sovrascritto
@@ -284,7 +284,7 @@ void add(int conn_sd) {
 
     // crea file all'interno della dir con nome ricevuto
     int fd;
-    if ((fd = open(fileName, O_WRONLY | O_CREAT | O_TRUNC, fileMode)) < 0) {  
+    if ((fd = open(fileName, O_WRONLY | O_CREAT | O_TRUNC, fileMode)) < 0) {
         fprintf(stderr, "ERROR: cannot create file %s (%s)\n", fileName, strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -319,7 +319,6 @@ void add(int conn_sd) {
     }
     debug("-\n");
     printf("\nFile received and saved as: %s\n", fileName);
-
 
     // Close the file descriptor
     close(fd);
@@ -532,9 +531,9 @@ void progress_bar(int processed, int total, char *message) {
 //////////////////////////////////////////////////////////////////////
 
 int extimate_archive_size(int dir_size) {
-    // ricavata a tentativi per ora corretta
-    // funziona per piccoli file
-    // per grandi non importa errore è minimo
+    // ricavata a tentativi
+    // spesso è corretta, a volte no...
+    // su file da una certa dimensione in poi ~ 1MB l'errore è trascurabile
     debug("1extimate_archive_size()\n", 5);
     int expected_size = dir_size - (dir_size % 10240) + 10240;
     if ((dir_size % 10240) <= 8192)
