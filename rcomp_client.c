@@ -279,15 +279,15 @@ void manage_request(int sd, struct request rq){
 void help(){
 	debug("help()\n",4);
 	const char* string =
-	    "Comandi disponibili\n"
-	    "\thelp:\n"
-	    "\t--> mostra l’elenco dei comandi disponibili add [file]\n"
-		"\tadd:\n"
-	    "\t--> invia il file specificato al server remoto compress [alg]\n"
-		"\tcompress:\n"
-	    "\t--> riceve dal server remoto l’archivio compresso secondo l’algoritmo specificato\n"
+	    "Comandi disponibili:\n"
+	    "\thelp\n"
+	    "\t --> mostra l’elenco dei comandi disponibili add [file]\n"
+		"\tadd\n"
+	    "\t --> invia il file specificato al server remoto compress [alg]\n"
+		"\tcompress\n"
+	    "\t --> riceve dal server remoto l’archivio compresso secondo l’algoritmo specificato\n"
 	    "\tquit\n"
-	    "\t--> disconnessione\n";
+	    "\t --> disconnessione\n";
 	printf(string);
 }
 
@@ -303,15 +303,11 @@ void add(int sd, char* argument){
 		}
 	}
 
-
 	int fd;
-
 	if((fd = open(argument, O_RDONLY)) < 0){
 		fprintf(stderr, "ERROR: File '%s' not found: (%s)\n", argument, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	
-
 
 	struct stat metadata;
 	if(stat(argument, &metadata) < 0){
@@ -326,12 +322,10 @@ void add(int sd, char* argument){
 		return;
 	}
 	permissions = metadata.st_mode&0777;
-	
-	ssize_t snd_bytes;
 
 	//-----------------INVIO COMANDO AL SERVER---------------------//
-	char *str = "a";
-	if((snd_bytes = send(sd, str, strlen(str), 0)) < 0){
+	ssize_t snd_bytes;
+	if((snd_bytes = send(sd, "a", 1, 0)) < 0){
 		fprintf(stderr, "ERROR: Impossible to send data on socket (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
@@ -481,7 +475,7 @@ void compress(int sd, char* argument){
 //////////////////////////////////////////////////
 
 void quit() {
-	printf("Quitting\n");
+	printf("\nQuitting\n");
 	//debug("quit()\n",4);	//debug se printa sei nella funzione
 
 	if (send(sd, "q", 1, 0) < 0){	//invio quit al server
