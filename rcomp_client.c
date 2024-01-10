@@ -402,6 +402,7 @@ void compress(int sd, char* argument){
 		printf("Message sent to the server: %s (Empty argument, set to 'z')\n", argument);
 	}else{
 		printf("Error: Invalid argument, use 'z' for gzip or 'j' for bzip2.\n");
+		return ;
 	}
 
 	// --- RICEZIONE RISPOSTA --- //
