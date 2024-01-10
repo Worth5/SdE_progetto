@@ -457,7 +457,7 @@ void compress(int sd, char* argument){
 		rcvd_bytes = recv(sd, &buffer, sizeof(buffer), 0);
 		size_t bytes_written = fwrite(buffer, 1, rcvd_bytes, myfile);
 		total_read += bytes_written;
-		//qua si può aggingere progress_bar()
+	
 		if (bytes_written < rcvd_bytes) {
 			fprintf(stderr, "Error writing to temporary file: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
