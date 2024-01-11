@@ -569,7 +569,7 @@ int extimate_archive_size(int dir_size) {
 //////////////////////---------------------DEBUG------------------------/////////////////////////
 
 // SUGGESTED USE: open new terminal window and run "tty" es. result->"dev/pts/1"
-// copy result and in main window run "./server -d=10 2>dev/pts/1"
+// copy result and in main window run "./server -d=10 2>/dev/pts/1"
 // this set debugLevel to 10 and redirect stderr to newly opened terminal
 #ifdef DEBUG
 	#include <stdarg.h>
@@ -591,7 +591,6 @@ void parse_arg_for_debug_option(int argc, char *argv[]) {
         sscanf(argv[argc], "%[^=]=%d", str, &lvl);
         if ((strcmp(str, "-d") == 0) || (strcmp(str, "-v") == 0)) {
             debugLevel = lvl;
-			printf("SET DEBUG LEVEL %d\n", debugLevel);
             break;
         }
     }  // if not found 0
