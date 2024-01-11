@@ -333,7 +333,7 @@ void compress(int conn_sd, char *comp_type) {
     char compressCommand[50];
 
     // creo comandi per processi figli
-    snprintf(tarCommand, 50, "tar c - -C %s .", recvFolder);
+    snprintf(tarCommand, 50, "tar cf - -C %s .", recvFolder);
     if (strcmp(comp_type, "j")) {
         snprintf(compressCommand, 50, "gzip > %s", compressedFile);
     }
@@ -366,7 +366,7 @@ void compress(int conn_sd, char *comp_type) {
 
     debug("compress()_create children\n");
     // ho separato il comando in due per poter printare una progress bar
-    FILE *tarStream = popen(tarCommand, "r");
+    FILE *tarStream = popen(tarCommand, "r");   //tar -> stdout -> pipe -> tarstream
     FILE *compressStream = popen(compressCommand, "w");
     fread_from_fwrite_to(tarStream, compressStream, archiveExtimate, "Compression");  // qui passo dati da un figlio all'altro e printo progress bar
     fclose(tarStream);
@@ -401,7 +401,7 @@ void compress(int conn_sd, char *comp_type) {
             exit(EXIT_FAILURE);
         }
         total_sent += snd_bytes;
-        debug("1compress()_file_total_sent:%s\r", total_sent);
+        debug("1compress()_file_total_sent:%d\r", total_sent);
         progress_bar(total_sent, compressedSize, "Sending");
     }
     printf("\n");
@@ -530,6 +530,7 @@ int fread_from_fwrite_to(FILE *s_input, FILE *s_output, int size_to_write, char 
         }
     }
     fflush(s_output);
+
     if (ferror(s_input)) {
         fprintf(stderr, "ERROR reading stream: %s", strerror(errno));
         exit(EXIT_FAILURE);

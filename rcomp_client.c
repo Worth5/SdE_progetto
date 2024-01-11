@@ -13,7 +13,7 @@
 //#define BUFFSIZE 4096
 #define PATH_MAX 4096//also defined in <limits.h>
 //abilita printf di debug all'interno dell funzione debug()
-#define DEBUG_LEVEL 10 //0  disabilita tutte printf di debug, più è alto il valore maggiori saranno le printf...
+//#define DEBUG_LEVEL 10 //0  disabilita tutte printf di debug, più è alto il valore maggiori saranno le printf...
 #define COMMAND_LENGHT_MAX 9
 
 int sd;			//socket descriptor
@@ -306,7 +306,7 @@ void add(int sd, char* argument){
 	int fd;
 	if((fd = open(argument, O_RDONLY)) < 0){
 		fprintf(stderr, "ERROR: File '%s' not found: (%s)\n", argument, strerror(errno));
-		exit(EXIT_FAILURE);
+		return;
 	}
 
 	struct stat metadata;
@@ -421,9 +421,9 @@ void compress(int sd, char* argument){
 		}else{
 			strcpy(filename,"archiviocompresso.tar.bz2");
 		}
-		printf("Server replied with  'OK\n', ready to receive: '%s'\n",filename);
+		printf("Server replied with  'OK'\n -> Ready to receive: '%s'\n",filename);
 	}else if(strcmp(resp, "NO") == 0) {
-		printf("Server responded with 'NO\n', add at least one file before compression.\n");
+		printf("Server responded with 'NO'\n -> Add at least one file before compression.\n");
 		return;
 	}else {
 		fprintf(stderr, "ERROR: Unexpected response from the server: %s\n", resp);
