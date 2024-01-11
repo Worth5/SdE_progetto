@@ -421,13 +421,14 @@ void compress(int sd, char* argument){
 		}else{
 			strcpy(filename,"archiviocompresso.tar.bz2");
 		}
-		printf("Server replied with OK\nReady to receive: '%s'\n",filename);
+		printf("Server replied with  'OK\n', ready to receive: '%s'\n",filename);
 	}else if(strcmp(resp, "NO") == 0) {
-		printf("Server responded with 'NO'.\n Add at least one file before compression.\n");
+		printf("Server responded with 'NO\n', add at least one file before compression.\n");
 		return;
 	}else {
 		fprintf(stderr, "ERROR: Unexpected response from the server: %s\n", resp);
-		exit(EXIT_FAILURE);  // o return;
+		exit(EXIT_FAILURE);
+		return;
 	}
 
 	FILE *myfile = fopen(filename, "wb");//b is telling stream to not convert things like \n but leave as '\' e 'n'
