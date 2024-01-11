@@ -455,11 +455,11 @@ void compress(int sd, char* argument){
 	size_t bytes_read;
 	long total_read = 0;
 	while ( total_read<file_size) {
-		rcvd_bytes = recv(sd, &buffer, sizeof(buffer), 0);
-		size_t bytes_written = fwrite(buffer, 1, rcvd_bytes, myfile);
+		int rcvd_bytes3 = recv(sd, &buffer, sizeof(buffer), 0);
+		size_t bytes_written = fwrite(buffer, 1, rcvd_bytes3, myfile);
 		total_read += bytes_written;
 	
-		if (bytes_written < rcvd_bytes) {
+		if (bytes_written < rcvd_bytes3) {
 			fprintf(stderr, "Error writing to temporary file: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
