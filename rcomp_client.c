@@ -25,7 +25,7 @@ struct request{	//creo una struttura che contiene comando e argomento
 //funzioni nel main
 int setup (int argc, char* argv[]);
 void get_request(struct request *rq);                    
-void manage_request(int sd, struct request rq);
+void manage_request(int sd, struct request rq);//posso ottimizzare passando come puntatore a costante
 
 //funzioni subordinate
 int fget_word(FILE* fd, char* str, int lenght_max);
@@ -138,8 +138,10 @@ int parse_argv_for_ip(int argc, char* argv[]){
 	debug("parse_argv_for_ip()\n",3);
 	int byte[4];
 	for(int j = 1; j < argc; j++){
-
-		if(sscanf(argv[j],"%d.%d.%d.%d",&byte[0],&byte[1],&byte[2],&byte[3])==4){//controllo quale argomento ha formato ip
+		if(strlen(argv[j])>16){//attenzione sizeof no
+			return -1;
+		}
+		if(sscanf(argv[j],"%d.%d.%d.%d%s",&byte[0],&byte[1],&byte[2],&byte[3])==4){//controllo quale argomento ha formato ip
 			debug("parse_argv_for_ip() checking possible ip\n",4);
 			int check = 1;
 			for(int i = 0; i< (sizeof(byte) / sizeof(byte[0])); i++){
@@ -191,6 +193,9 @@ void get_request(struct request *rq){
 
 	//prendo due parole da stdin poi svuoto stdin se fosse rimasto qualcosa
 	debug("get_request()_get_word_1\n",3);	
+
+	//fgets();
+	//sscanf();
 
 	int ret = fget_word(stdin, rq->command,COMMAND_LENGHT_MAX); 	//prima parola
 
@@ -394,8 +399,7 @@ void compress(int sd, char* argument){
 	   }
 		printf("Messaggio inviato al server: %s\n", argument);
 	}else if (strcmp(argument, "") == 0){
-		strcpy(argument, "z");
-		if ((snd_bytes = send(sd, argument, strlen(argument), 0)) < 0) {
+		if ((snd_bytes = send(sd, "z", 1, 0)) < 0) {
 			fprintf(stderr, "Error : Unable to specify the algorithm: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
@@ -412,7 +416,8 @@ void compress(int sd, char* argument){
 		fprintf(stderr, "ERRORE: impossibile ricevere dati: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	resp[rcvd_bytes] = '\0';
+	resp[3] = '\0';
+	printf("risposta: %s\n",resp);
 
 	char filename[30];
 	if (strcmp(resp, "OK") == 0) {
@@ -428,7 +433,6 @@ void compress(int sd, char* argument){
 	}else {
 		fprintf(stderr, "ERROR: Unexpected response from the server: %s\n", resp);
 		exit(EXIT_FAILURE);
-		return;
 	}
 
 	FILE *myfile = fopen(filename, "w");   //apro file

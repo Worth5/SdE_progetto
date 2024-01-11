@@ -65,16 +65,16 @@ int debug(const char *str, ...);//VARIADIC FUNCTIONS
 
 int main(int argc, char *argv[]) {
     parse_arg_for_debug_option(argc, argv);  // if -d or -v specified enable debug print
+	debug("\nmain()_start\n");
+
     int port = parse_argv_for_port(argc, argv);
     if (port < 0){
 		port = 1234;
 		printf("No valid port, using default: %d\n", port);
 	}
 
-    debug("\nmain()_start\n");
+	debug("main()_create_temp_folder\n");
     snprintf(tempFolder, 30, "rcomp_server_temp_%d", getpid());
-
-    debug("main()_create_temp_folder\n");
     mode_t mode = S_IRWXU; // = (S_IRUSR | S_IWUSR | S_IXUSR)
     if (mkdir(tempFolder, mode) < 0) {
         fprintf(stderr, "ERROR creating directory: %s\n", strerror(errno));
@@ -119,13 +119,13 @@ int main(int argc, char *argv[]) {
             }
             else if (strcmp(command, "q") == 0) {
                 printf("Connection interrupted by client\n");
+				debug("-");
 				break;
             }
             else {
                 valid_input = 0;
                 printf("Invalid command detected(%s)\n", command);
             }
-            debug("-");
         }
         printf("Closing connection\n");
         close(conn_sd);
@@ -345,7 +345,7 @@ void compress(int conn_sd, char *comp_type) {
     // se non ce ne sono ritorno
     int dirSize = get_size(recvFolder);
     if (dirSize < 0) {
-        int snd_bytes = send(conn_sd, "NO", 3, 0);  // {'N','O','\0'}
+        int snd_bytes = send(conn_sd, "NO", 2, 0);
         debug("1compress()_send_NO\n");
         if (snd_bytes < 0) {
             fprintf(stderr, "ERROR sending compressed data: %s\n", strerror(errno));
@@ -388,7 +388,7 @@ void compress(int conn_sd, char *comp_type) {
         fprintf(stderr, "ERROR sending data: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    debug("compress()_send_compressed_size:%d", compressedSize);
+    debug("compress()_send_compressed_size:%d\n", compressedSize);
 
     FILE *zip = fopen(compressedFile, "r");
     // mando file
@@ -408,7 +408,7 @@ void compress(int conn_sd, char *comp_type) {
     debug("\n");
     fclose(zip);
 
-    debug("-compress()_remove_files");
+    debug("-compress()_remove_files\n");
     // rimuovo cartella con file ricevuti
     printf("Removing uncompressed files\n");
     int len = sizeof(recvFolder) + sizeof("rm -r ") - 1;
@@ -457,8 +457,7 @@ int get_size(char *path) {
     }
 
     if (S_ISREG(fileStat.st_mode)) {  // se file è file regolare ritorno dimensione
-        debug("get_size()_ISREG");
-        debug("- size: %d\n", fileStat.st_size);
+        debug("-get_size()_ISREG size:%d\n", fileStat.st_size);
         return fileStat.st_size;
     }
 
@@ -568,7 +567,7 @@ int extimate_archive_size(int dir_size) {
 
 //////////////////////---------------------DEBUG------------------------/////////////////////////
 
-// SUGGESTED USE: open new terminal window and run "tty" es. result->"dev/pts/1"
+// SUGGESTED USE: open new terminal window and run "tty" es. result: "dev/pts/1"
 // copy result and in main window run "./server -d=10 2>/dev/pts/1"
 // this set debugLevel to 10 and redirect stderr to newly opened terminal
 #ifdef DEBUG
@@ -607,7 +606,7 @@ int debug(const char *format, ...) {
     va_start(args, format);
     int indent = 0;
 
-    if (*format != 0)
+    if (*format != 0){
         switch (*format) {
         case '+':
             indent = (++debugIndent);
@@ -625,50 +624,60 @@ int debug(const char *format, ...) {
             format--;
             break;
         }
+	}
+
     format++;
     int count = 0;
-    if (debugLevel > indent) {
-        if (*format != '\0')
-            while ((indent--) > 0) fprintf(stderr, "\t");
-        fprintf(stderr, "\033[1;33m");
+    if ((debugLevel <= indent) || (*format == '\0')) {
+		va_end(args);
+    	return count;
+	}
 
-        while (*format != '\0') {
-            if (*format != '%') {
-                fputc(*format, stderr);
-                count++;
-            }
-            else {
-                // Handle format specifiers
-                switch (*++format) {
-                // funzionalità base printf
-                case 'd':
-                    count += fprintf(stderr, "%d", va_arg(args, int));
-                    break;
-                case 'c':
-                    count += fputc(va_arg(args, int), stderr);
-                    break;
-                case 's':
-                    count += fprintf(stderr, "%s", va_arg(args, char *));
-                    break;
-                case 'f':
-                    count += fprintf(stderr, "%f", va_arg(args, double));
-                    break;
-                case '%':
-                    fputc('%', stderr);
-                    count++;
-                    break;
-                default:
-                    // Handle unknown format specifiers
-                    fputc('%', stderr);
-                    fputc(*format, stderr);
-                    count += 2;
-                    break;
-                }
-            }
-            format++;
-        }
-        fprintf(stderr, "\033[1;0m");
-    }
+	//indento
+	while ((indent--) > 0) 
+		fprintf(stderr, "\t");
+
+	//cambio colore
+	fprintf(stderr, "\033[1;33m");
+
+	//printo
+	while (*format != '\0') {
+		if (*format != '%') {
+			fputc(*format, stderr);
+			count++;
+		}
+		else {
+			// Handle format specifiers
+			switch (*++format) {
+			// funzionalità base printf
+			case 'd':
+				count += fprintf(stderr, "%d", va_arg(args, int));
+				break;
+			case 'c':
+				count += fputc(va_arg(args, int), stderr);
+				break;
+			case 's':
+				count += fprintf(stderr, "%s", va_arg(args, char *));
+				break;
+			case 'f':
+				count += fprintf(stderr, "%f", va_arg(args, double));
+				break;
+			case '%':
+				fputc('%', stderr);
+				count++;
+				break;
+			default:
+				// Handle unknown format specifiers
+				fputc('%', stderr);
+				fputc(*format, stderr);
+				count += 2;
+				break;
+			}
+		}
+		format++;
+	}
+	fprintf(stderr, "\033[1;0m");
+
     va_end(args);
     return count;
 #endif
