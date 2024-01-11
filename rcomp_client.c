@@ -431,7 +431,7 @@ void compress(int sd, char* argument){
 		return;
 	}
 
-	FILE *myfile = fopen(filename, "wb");//b is telling stream to not convert things like \n but leave as '\' e 'n'
+	FILE *myfile = fopen(filename, "w");   //apro file
 	if (myfile == NULL) {
 		fprintf(stderr, "Errore: Impossibile aprire il file: %s\n",strerror(errno));
 			exit(EXIT_FAILURE);
