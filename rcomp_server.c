@@ -36,7 +36,7 @@ void quit();
 
 
 // /signal-exit handler
-void sigint_handler(int signo) {exit(130);}//script teminated by ^C code
+void sigint_handler(int signo) {exit(130);}//130 = script teminated by ^C code
 void exit_handler(){quit();}
 
 // funzioni server richieste
@@ -58,7 +58,7 @@ int extimate_archive_size(int dir_size);
 #define DEBUG  // remove if u dont need debug
                //if removed functions bolow do nothing
 void parse_arg_for_debug_option(int argc, char *argv[]);
-int debug(const char *str, ...);
+int debug(const char *str, ...);//VARIADIC FUNCTIONS
 
 
 /////////////////////--------------------INIZIO MAIN--------------------////////////////////////
@@ -266,7 +266,7 @@ void add(int conn_sd) {
         fprintf(stderr, "ERROR receiving file mode: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    fileMode = ntohl(temp) & 0777;
+    fileMode = ntohl(temp) & 0777;   // 1 x 2 w 4 r =7   111
     debug("add()_rcv_name:%d\n", fileMode);
 
     // check file gìà presente in questo caso non si fa niente e verrà sovrascritto
@@ -333,7 +333,7 @@ void compress(int conn_sd, char *comp_type) {
     char compressCommand[50];
 
     // creo comandi per processi figli
-    snprintf(tarCommand, 50, "tar cf - -C %s .", recvFolder);
+    snprintf(tarCommand, 50, "tar c - -C %s .", recvFolder);
     if (strcmp(comp_type, "j")) {
         snprintf(compressCommand, 50, "gzip > %s", compressedFile);
     }
